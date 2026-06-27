@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Clientes{% endblock %}
+{% block topbar_title %}Clientes{% endblock %}
+{% block topbar_actions %}
+<a href="/clientes/nuevo" class="btn btn-primary"><i class="ti ti-plus"></i> Nuevo cliente</a>
+{% endblock %}
+{% block content %}
+
+<form method="get" class="filter-bar">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar cliente..." style="flex:1">
+    <button type="submit" class="btn btn-ghost"><i class="ti ti-search"></i> Buscar</button>
+</form>
+
+{% if clientes %}
+    {% for c in clientes %}
+    <div class="work-row" style="align-items:flex-start">
+        <div style="width:38px;height:38px;border-radius:50%;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--navy);flex-shrink:0">
+            {{ c.empresa[:2].upper() }}
+        </div>
+        <div class="work-info">
+            <div class="work-name">{{ c.empresa }}</div>
+            <div class="work-sub">
+                {% if c.telefono %}{{ c.telefono }}{% endif %}
+                {% if c.email %} &bull; {{ c.email }}{% endif %}
+                &bull; {{ c.trabajos | length }} trabajo(s)
+            </div>
+        </div>
+        <div style="display:flex;gap:6px">
+            <a href="/historial?cliente={{ c.empresa }}" class="btn btn-ghost btn-sm">
+                <i class="ti ti-history"></i> Historial
+            </a>
+            <a href="/clientes/{{ c.id }}/editar" class="btn btn-ghost btn-sm">
+                <i class="ti ti-pencil"></i>
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="ti ti-users"></i>
+        <p>No hay clientes registrados.</p>
+        <a href="/clientes/nuevo" class="btn btn-primary" style="margin-top:16px">Agregar cliente</a>
+    </div>
+{% endif %}
+
+{% endblock %}

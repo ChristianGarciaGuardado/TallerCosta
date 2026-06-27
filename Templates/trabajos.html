@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Trabajos activos{% endblock %}
+{% block topbar_title %}Trabajos activos{% endblock %}
+{% block content %}
+
+<form method="get" class="filter-bar">
+    <select name="cliente_id" style="width:200px">
+        <option value="">Todos los clientes</option>
+        {% for c in clientes %}
+        <option value="{{ c.id }}" {% if cliente_id == c.id|string %}selected{% endif %}>{{ c.empresa }}</option>
+        {% endfor %}
+    </select>
+    <select name="estado" style="width:160px">
+        <option value="">Todos los estados</option>
+        <option value="en_curso" {% if estado == 'en_curso' %}selected{% endif %}>En curso</option>
+        <option value="finalizado" {% if estado == 'finalizado' %}selected{% endif %}>Finalizado</option>
+    </select>
+    <input type="text" name="maquina" value="{{ maquina }}" placeholder="Buscar por máquina..." style="flex:1">
+    <button type="submit" class="btn btn-ghost"><i class="ti ti-search"></i></button>
+</form>
+
+{% if trabajos %}
+    {% for t in trabajos %}
+    <a href="/trabajos/{{ t.id }}" class="work-row">
+        {% if t.estado == 'en_curso' %}
+            <span class="badge badge-amber">En curso</span>
+        {% elif t.estado == 'finalizado' %}
+            <span class="badge badge-red">Finalizado</span>
+        {% endif %}
+        <div class="work-info">
+            <div class="work-name">{{ t.cliente.empresa }} — {{ t.marca }} {{ t.modelo }}</div>
+            <div class="work-sub">{{ t.numero }} &bull; {{ t.tipo_trabajo }} &bull; {{ t.identificador }} &bull; Ingresó {{ t.fecha_ingreso.strftime('%d/%m/%Y') }}</div>
+        </div>
+        <div class="work-amounts">
+            <div class="work-total">{{ t.presupuestado | moneda }}</div>
+            {% if t.saldo > 0 %}
+                <div class="work-saldo" style="color:var(--red)">Saldo {{ t.saldo | moneda }}</div>
+            {% else %}
+                <div class="work-saldo" style="color:var(--green)">Cobrado</div>
+            {% endif %}
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--gray-300)"></i>
+    </a>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="ti ti-tool"></i>
+        <p>No hay trabajos que coincidan con el filtro.</p>
+    </div>
+{% endif %}
+
+{% endblock %}

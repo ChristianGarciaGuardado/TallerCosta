@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio — Costa Taller Mecánico{% endblock %}
+
+{% block topbar_title %}Inicio{% endblock %}
+
+{% block topbar_actions %}
+<a href="/presupuestos/nuevo" class="btn btn-primary">
+    <i class="ti ti-plus"></i> Nuevo presupuesto
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="kpi-grid">
+    <div class="kpi">
+        <div class="kpi-label">Presupuestos pendientes</div>
+        <div class="kpi-value amber">{{ presupuestos_pendientes }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Trabajos activos</div>
+        <div class="kpi-value blue">{{ trabajos | length }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Cobrado este mes</div>
+        <div class="kpi-value green">{{ total_cobrado_mes | moneda }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Saldo total a cobrar</div>
+        <div class="kpi-value red">{{ total_saldo | moneda }}</div>
+    </div>
+</div>
+
+{% if trabajos %}
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">
+        Trabajos activos
+    </div>
+
+    {% for t in trabajos %}
+    <a href="/trabajos/{{ t.id }}" class="work-row">
+        {% if t.estado == 'en_curso' %}
+            <span class="badge badge-amber">En curso</span>
+        {% elif t.estado == 'finalizado' %}
+            <span class="badge badge-red">Finalizado sin entregar</span>
+        {% endif %}
+
+        <div class="work-info">
+            <div class="work-name">{{ t.cliente.empresa }} — {{ t.marca }} {{ t.modelo }}</div>
+            <div class="work-sub">
+                {{ t.numero }} &bull; {{ t.tipo_trabajo }} &bull; {{ t.identificador }}
+                &bull; Ingresó {{ t.fecha_ingreso.strftime('%d/%m/%Y') }}
+            </div>
+        </div>
+
+        <div class="work-amounts">
+            <div class="work-total">{{ t.presupuestado | moneda }}</div>
+            {% if t.saldo > 0 %}
+                <div class="work-saldo" style="color:var(--red)">Saldo {{ t.saldo | moneda }}</div>
+            {% else %}
+                <div class="work-saldo" style="color:var(--green)">Cobrado</div>
+            {% endif %}
+        </div>
+
+        <i class="ti ti-chevron-right" style="color:var(--gray-300)"></i>
+    </a>
+    {% endfor %}
+
+{% else %}
+    <div class="empty-state">
+        <i class="ti ti-tool"></i>
+        <p>No hay trabajos activos por el momento.</p>
+        <a href="/presupuestos/nuevo" class="btn btn-primary" style="margin-top:16px">
+            Crear primer presupuesto
+        </a>
+    </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}{{ trabajo.numero }}{% endblock %}
+{% block topbar_title %}{{ trabajo.numero }} — {{ trabajo.cliente.empresa }}{% endblock %}
+{% block topbar_actions %}
+<div style="display:flex;gap:8px;align-items:center">
+    {% if trabajo.estado == 'en_curso' %}
+    <form method="post" action="/trabajos/{{ trabajo.id }}/estado">
+        <input type="hidden" name="estado" value="finalizado">
+        <button type="submit" class="btn btn-amber"><i class="ti ti-check"></i> Marcar finalizado</button>
+    </form>
+    {% elif trabajo.estado == 'finalizado' %}
+    <form method="post" action="/trabajos/{{ trabajo.id }}/estado">
+        <input type="hidden" name="estado" value="entregado">
+        <button type="submit" class="btn btn-green" onclick="return confirm('¿Confirmar entrega?')">
+            <i class="ti ti-truck"></i> Marcar entregado
+        </button>
+    </form>
+    {% endif %}
+    <a href="/trabajos" class="btn btn-ghost"><i class="ti ti-arrow-left"></i> Volver</a>
+</div>
+{% endblock %}
+{% block content %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <!-- COLUMNA IZQUIERDA -->
+    <div>
+        <div class="card">
+            <div class="card-title">Datos del trabajo</div>
+            <div class="mini-row"><span class="mini-label">Estado</span>
+                <span>
+                {% if trabajo.estado == 'en_curso' %}<span class="badge badge-amber">En curso</span>
+                {% elif trabajo.estado == 'finalizado' %}<span class="badge badge-red">Finalizado</span>
+                {% else %}<span class="badge badge-green">Entregado</span>{% endif %}
+                </span>
+            </div>
+            <div class="mini-row"><span class="mini-label">Cliente</span><span class="mini-val">{{ trabajo.cliente.empresa }}</span></div>
+            <div class="mini-row"><span class="mini-label">Tipo de equipo</span><span class="mini-val">{{ trabajo.tipo_equipo }}</span></div>
+            <div class="mini-row"><span class="mini-label">Marca / Modelo</span><span class="mini-val">{{ trabajo.marca }} {{ trabajo.modelo }}</span></div>
+            <div class="mini-row"><span class="mini-label">Identificador</span><span class="mini-val">{{ trabajo.identificador }}</span></div>
+            <div class="mini-row"><span class="mini-label">Tipo de trabajo</span><span class="mini-val">{{ trabajo.tipo_trabajo }}</span></div>
+            <div class="mini-row"><span class="mini-label">Fecha ingreso</span><span class="mini-val">{{ trabajo.fecha_ingreso.strftime('%d/%m/%Y') }}</span></div>
+            {% if trabajo.observaciones %}
+            <hr class="divider">
+            <div style="font-size:12px;color:var(--text-light);margin-bottom:4px">Observaciones</div>
+            <div style="font-size:13px">{{ trabajo.observaciones }}</div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="card-title">Resumen financiero</div>
+            <div class="mini-row"><span class="mini-label">Presupuestado</span><span class="mini-val">{{ trabajo.presupuestado | moneda }}</span></div>
+            <div class="mini-row"><span class="mini-label">Total gastos</span><span class="mini-val" style="color:var(--red)">{{ trabajo.total_gastos | moneda }}</span></div>
+            <div class="mini-row"><span class="mini-label">Total cobrado</span><span class="mini-val" style="color:var(--green)">{{ trabajo.total_cobrado | moneda }}</span></div>
+            <div class="mini-row"><span class="mini-label">Saldo a cobrar</span>
+                <span class="mini-val" style="color:{% if trabajo.saldo > 0 %}var(--red){% else %}var(--green){% endif %}">
+                    {{ trabajo.saldo | moneda }}
+                </span>
+            </div>
+            <hr class="divider">
+            <div class="mini-row">
+                <span class="mini-label" style="font-weight:600">Ganancia estimada</span>
+                <span class="mini-val" style="color:var(--green);font-size:15px;font-weight:600">{{ trabajo.ganancia | moneda }}</span>
+            </div>
+        </div>
+
+        <!-- GASTOS DEL TRABAJO -->
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div class="card-title" style="margin:0">Gastos del trabajo</div>
+                <button onclick="toggleGastoForm()" class="btn btn-ghost btn-sm">
+                    <i class="ti ti-plus"></i> Agregar
+                </button>
+            </div>
+
+            <div id="gasto-form" style="display:none;background:var(--gray-100);border-radius:var(--radius);padding:14px;margin-bottom:12px">
+                <form method="post" action="/trabajos/{{ trabajo.id }}/gasto">
+                    <div class="form-grid form-grid-2" style="margin-bottom:10px">
+                        <div class="field">
+                            <label>Fecha</label>
+                            <input type="date" name="fecha" value="{{ today }}">
+                        </div>
+                        <div class="field">
+                            <label>Categoría</label>
+                            <select name="categoria">
+                                {% for cat in ['Repuestos','Insumos','Mano de Obra Externa','Herramientas','Otros'] %}
+                                <option>{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Proveedor</label>
+                            <input type="text" name="proveedor" placeholder="Opcional">
+                        </div>
+                        <div class="field">
+                            <label>Monto ($) *</label>
+                            <input type="number" name="monto" min="0" step="0.01" required>
+                        </div>
+                        <div class="field">
+                            <label>Forma de pago</label>
+                            <select name="forma_pago">
+                                {% for f in ['Efectivo','Transferencia','Cheque','Tarjeta'] %}
+                                <option>{{ f }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Descripción</label>
+                            <input type="text" name="descripcion" placeholder="Opcional">
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button type="submit" class="btn btn-primary btn-sm">Guardar gasto</button>
+                        <button type="button" onclick="toggleGastoForm()" class="btn btn-ghost btn-sm">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            {% if trabajo.gastos %}
+                {% for g in trabajo.gastos %}
+                <div class="mini-row">
+                    <div>
+                        <span class="mini-label">{{ g.descripcion or g.categoria }}</span>
+                        <span style="font-size:11px;color:var(--text-light);margin-left:6px">{{ g.fecha.strftime('%d/%m') }}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span class="mini-val" style="color:var(--red)">{{ g.monto | moneda }}</span>
+                        <form method="post" action="/trabajos/gasto/{{ g.id }}/eliminar" style="display:inline">
+                            <button type="submit" style="background:none;border:none;cursor:pointer;color:var(--text-light)" onclick="return confirm('¿Eliminar gasto?')">
+                                <i class="ti ti-trash" style="font-size:14px"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+                <hr class="divider">
+                <div class="mini-row">
+                    <span style="font-weight:600">Total gastos</span>
+                    <span style="font-weight:600;color:var(--red)">{{ trabajo.total_gastos | moneda }}</span>
+                </div>
+            {% else %}
+                <div style="text-align:center;padding:16px;color:var(--text-light);font-size:13px">
+                    Sin gastos cargados
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- COLUMNA DERECHA: CUENTA CORRIENTE -->
+    <div>
+        <div class="card" style="border-top:3px solid var(--navy)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                <div class="card-title" style="margin:0">Cuenta corriente</div>
+                <a href="/cuenta-corriente?cliente_id={{ trabajo.cliente_id }}" class="btn btn-ghost btn-sm">
+                    Ver cliente completo
+                </a>
+            </div>
+
+            <!-- Estado de cuenta -->
+            <div style="background:var(--gray-100);border-radius:var(--radius);padding:12px;margin-bottom:14px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="font-size:12px;color:var(--text-light)">Presupuestado</span>
+                    <span style="font-size:13px;font-weight:500">{{ trabajo.presupuestado | moneda }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="font-size:12px;color:var(--text-light)">Cobrado</span>
+                    <span style="font-size:13px;font-weight:500;color:var(--green)">{{ trabajo.total_cobrado | moneda }}</span>
+                </div>
+                <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+                <div style="display:flex;justify-content:space-between">
+                    <span style="font-size:13px;font-weight:600">Saldo pendiente</span>
+                    <span style="font-size:16px;font-weight:600;color:{% if trabajo.saldo > 0 %}var(--red){% else %}var(--green){% endif %}">
+                        {{ trabajo.saldo | moneda }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Historial de cobros -->
+            {% if trabajo.cobros %}
+            <div style="margin-bottom:14px">
+                <div style="font-size:11px;font-weight:600;color:var(--text-light);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Cobros registrados</div>
+                {% for c in trabajo.cobros %}
+                <div class="mini-row">
+                    <div>
+                        <span class="mini-val">{{ c.monto | moneda }}</span>
+                        <span style="font-size:11px;color:var(--text-light);margin-left:6px">{{ c.forma_pago }} &bull; {{ c.fecha.strftime('%d/%m/%Y') }}</span>
+                        {% if c.comprobante %}<span style="font-size:11px;color:var(--text-light)"> &bull; N° {{ c.comprobante }}</span>{% endif %}
+                    </div>
+                    <form method="post" action="/trabajos/cobro/{{ c.id }}/eliminar">
+                        <button type="submit" style="background:none;border:none;cursor:pointer;color:var(--text-light)" onclick="return confirm('¿Eliminar cobro?')">
+                            <i class="ti ti-trash" style="font-size:14px"></i>
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Formulario nuevo cobro -->
+            {% if trabajo.saldo > 0 %}
+            <div style="background:var(--gray-100);border-radius:var(--radius);padding:14px">
+                <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Registrar cobro</div>
+                <form method="post" action="/trabajos/{{ trabajo.id }}/cobro">
+                    <div class="form-grid form-grid-2" style="margin-bottom:10px">
+                        <div class="field">
+                            <label>Monto ($) *</label>
+                            <input type="number" name="monto" min="0" step="0.01" placeholder="{{ trabajo.saldo }}" required>
+                        </div>
+                        <div class="field">
+                            <label>Forma de pago *</label>
+                            <select name="forma_pago" required>
+                                {% for f in ['Efectivo','Transferencia','Cheque','Tarjeta Débito','Tarjeta Crédito'] %}
+                                <option>{{ f }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Fecha</label>
+                            <input type="date" name="fecha" value="{{ today }}">
+                        </div>
+                        <div class="field">
+                            <label>N° Comprobante</label>
+                            <input type="text" name="comprobante" placeholder="Opcional">
+                        </div>
+                        <div class="field form-full">
+                            <label>Notas</label>
+                            <input type="text" name="notas" placeholder="Opcional">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-green btn-block">
+                        <i class="ti ti-cash"></i> Registrar cobro
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <div class="alert alert-green">
+                <i class="ti ti-circle-check"></i> Trabajo cobrado en su totalidad
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<script>
+function toggleGastoForm() {
+    const f = document.getElementById('gasto-form');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+document.querySelectorAll('input[name="fecha"]').forEach(el => {
+    el.value = new Date().toISOString().split('T')[0];
+});
+</script>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Historial{% endblock %}
+{% block topbar_title %}Historial de trabajos{% endblock %}
+{% block content %}
+
+<form method="get" class="filter-bar">
+    <input type="text" name="cliente" value="{{ cliente_q }}" placeholder="Buscar por cliente..." style="flex:1">
+    <input type="text" name="maquina" value="{{ maquina_q }}" placeholder="Identificador de máquina..." style="flex:1">
+    <button type="submit" class="btn btn-ghost"><i class="ti ti-search"></i> Buscar</button>
+    {% if cliente_q or maquina_q %}
+    <a href="/historial" class="btn btn-ghost"><i class="ti ti-x"></i> Limpiar</a>
+    {% endif %}
+</form>
+
+{% if maquina_q and trabajos %}
+<!-- Alerta si la misma máquina tuvo múltiples trabajos -->
+{% if trabajos | length > 1 %}
+<div class="alert alert-blue">
+    <i class="ti ti-info-circle"></i>
+    La máquina <strong>{{ maquina_q }}</strong> tuvo {{ trabajos | length }} trabajos en el taller.
+    {% set clientes_distintos = trabajos | map(attribute='cliente.empresa') | list | unique | list %}
+    {% if clientes_distintos | length > 1 %}
+    Pasó por distintos dueños: {{ clientes_distintos | join(', ') }}.
+    {% endif %}
+</div>
+{% endif %}
+{% endif %}
+
+{% if trabajos %}
+    {% for t in trabajos %}
+    <a href="/trabajos/{{ t.id }}" class="work-row">
+        <span class="badge badge-green">Entregado</span>
+        <div class="work-info">
+            <div class="work-name">{{ t.cliente.empresa }} — {{ t.marca }} {{ t.modelo }}</div>
+            <div class="work-sub">
+                {{ t.numero }} &bull; {{ t.tipo_trabajo }} &bull; {{ t.identificador }}
+                {% if t.fecha_entrega %}
+                &bull; Entregado {{ t.fecha_entrega.strftime('%d/%m/%Y') }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="work-amounts">
+            <div class="work-total">{{ t.presupuestado | moneda }}</div>
+            <div class="work-saldo" style="color:var(--green)">Cobrado {{ t.total_cobrado | moneda }}</div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--gray-300)"></i>
+    </a>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="ti ti-history"></i>
+        <p>
+            {% if cliente_q or maquina_q %}
+            No se encontraron trabajos con ese criterio.
+            {% else %}
+            Todavía no hay trabajos entregados.
+            {% endif %}
+        </p>
+    </div>
+{% endif %}
+
+{% endblock %}

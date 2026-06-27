@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{% if cliente %}Editar cliente{% else %}Nuevo cliente{% endif %}{% endblock %}
+{% block topbar_title %}{% if cliente %}Editar cliente{% else %}Nuevo cliente{% endif %}{% endblock %}
+{% block topbar_actions %}
+<a href="/clientes" class="btn btn-ghost"><i class="ti ti-arrow-left"></i> Volver</a>
+{% endblock %}
+{% block content %}
+
+<div style="max-width:600px">
+<form method="post">
+    <div class="card">
+        <div class="card-title">Datos del cliente</div>
+        <div class="form-grid form-grid-2">
+            <div class="field form-full">
+                <label>Empresa / Razón social *</label>
+                <input type="text" name="empresa" value="{{ cliente.empresa if cliente else '' }}" required>
+            </div>
+            <div class="field">
+                <label>Nombre de contacto</label>
+                <input type="text" name="contacto" value="{{ cliente.contacto if cliente else '' }}">
+            </div>
+            <div class="field">
+                <label>Teléfono</label>
+                <input type="text" name="telefono" value="{{ cliente.telefono if cliente else '' }}">
+            </div>
+            <div class="field">
+                <label>Email</label>
+                <input type="email" name="email" value="{{ cliente.email if cliente else '' }}">
+            </div>
+            <div class="field">
+                <label>CUIT</label>
+                <input type="text" name="cuit" value="{{ cliente.cuit if cliente else '' }}">
+            </div>
+            <div class="field form-full">
+                <label>Dirección</label>
+                <input type="text" name="direccion" value="{{ cliente.direccion if cliente else '' }}">
+            </div>
+            <div class="field form-full">
+                <label>Notas</label>
+                <textarea name="notas">{{ cliente.notas if cliente else '' }}</textarea>
+            </div>
+        </div>
+    </div>
+    <div style="display:flex;gap:8px">
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="/clientes" class="btn btn-ghost">Cancelar</a>
+    </div>
+</form>
+</div>
+
+{% endblock %}

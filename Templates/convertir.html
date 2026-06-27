@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Convertir a trabajo{% endblock %}
+{% block topbar_title %}Convertir {{ presupuesto.numero }} a trabajo{% endblock %}
+{% block topbar_actions %}
+<a href="/presupuestos" class="btn btn-ghost"><i class="ti ti-arrow-left"></i> Volver</a>
+{% endblock %}
+{% block content %}
+
+<div style="max-width:560px">
+    <div class="alert alert-green" style="margin-bottom:16px">
+        <i class="ti ti-check"></i>
+        Presupuesto aceptado por el cliente. Completá los datos para crear el trabajo.
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+        <div class="card-title">Resumen del presupuesto</div>
+        <div class="mini-row"><span class="mini-label">Cliente</span><span class="mini-val">{{ presupuesto.cliente.empresa }}</span></div>
+        <div class="mini-row"><span class="mini-label">Máquina</span><span class="mini-val">{{ presupuesto.tipo_equipo }} {{ presupuesto.marca }} {{ presupuesto.modelo }}</span></div>
+        <div class="mini-row"><span class="mini-label">Identificador</span><span class="mini-val">{{ presupuesto.identificador }}</span></div>
+        <div class="mini-row"><span class="mini-label">Tipo de trabajo</span><span class="mini-val">{{ presupuesto.tipo_trabajo }}</span></div>
+        <div class="mini-row"><span class="mini-label">Total aprobado</span><span class="mini-val" style="color:var(--green);font-size:16px">{{ presupuesto.total | moneda }}</span></div>
+    </div>
+
+    <form method="post">
+        <div class="card">
+            <div class="card-title">Datos del trabajo</div>
+            <div class="form-grid form-grid-2">
+                <div class="field">
+                    <label>Fecha de ingreso *</label>
+                    <input type="date" name="fecha_ingreso" value="{{ today }}" required>
+                </div>
+                <div class="field form-full">
+                    <label>Observaciones iniciales</label>
+                    <textarea name="observaciones">{{ presupuesto.observaciones or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px">
+            <button type="submit" class="btn btn-green">
+                <i class="ti ti-tool"></i> Confirmar y crear trabajo
+            </button>
+            <a href="/presupuestos" class="btn btn-ghost">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Set today's date as default
+document.querySelector('input[name="fecha_ingreso"]').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

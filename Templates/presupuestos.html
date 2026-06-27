@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Presupuestos{% endblock %}
+{% block topbar_title %}Presupuestos{% endblock %}
+{% block topbar_actions %}
+<a href="/presupuestos/nuevo" class="btn btn-primary"><i class="ti ti-plus"></i> Nuevo presupuesto</a>
+{% endblock %}
+{% block content %}
+
+<div class="tabs">
+    <a href="?estado=activos" class="tab {% if estado == 'activos' %}active{% endif %}">Pendientes</a>
+    <a href="?estado=aceptados" class="tab {% if estado == 'aceptados' %}active{% endif %}">Aceptados</a>
+    <a href="?estado=rechazados" class="tab {% if estado == 'rechazados' %}active{% endif %}">Rechazados</a>
+</div>
+
+{% if lista %}
+    {% for p in lista %}
+    <div class="work-row">
+        {% if p.estado == 'borrador' %}
+            <span class="badge badge-gray">Borrador</span>
+        {% elif p.estado == 'enviado' %}
+            <span class="badge badge-purple">Enviado</span>
+        {% elif p.estado == 'aceptado' %}
+            <span class="badge badge-green">Aceptado</span>
+        {% else %}
+            <span class="badge badge-red">Rechazado</span>
+        {% endif %}
+
+        <div class="work-info">
+            <div class="work-name">{{ p.cliente.empresa }} — {{ p.tipo_equipo }} {{ p.marca }} {{ p.modelo }}</div>
+            <div class="work-sub">{{ p.numero }} &bull; {{ p.tipo_trabajo }} &bull; {{ p.creado.strftime('%d/%m/%Y') }}</div>
+        </div>
+
+        <div class="work-amounts">
+            <div class="work-total">{{ p.total | moneda }}</div>
+        </div>
+
+        <div style="display:flex;gap:6px;flex-shrink:0">
+            {% if p.estado in ['borrador', 'enviado'] %}
+                <a href="/presupuestos/{{ p.id }}/convertir" class="btn btn-green btn-sm">
+                    <i class="ti ti-check"></i> Convertir a trabajo
+                </a>
+                <form method="post" action="/presupuestos/{{ p.id }}/estado" style="display:inline">
+                    <input type="hidden" name="estado" value="{% if p.estado == 'borrador' %}enviado{% else %}borrador{% endif %}">
+                    <button type="submit" class="btn btn-ghost btn-sm">
+                        {% if p.estado == 'borrador' %}Marcar enviado{% else %}Volver a borrador{% endif %}
+                    </button>
+                </form>
+                <form method="post" action="/presupuestos/{{ p.id }}/estado" style="display:inline">
+                    <input type="hidden" name="estado" value="rechazado">
+                    <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('¿Marcar como rechazado?')">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </form>
+            {% endif %}
+            <a href="/presupuestos/{{ p.id }}/editar" class="btn btn-ghost btn-sm"><i class="ti ti-pencil"></i></a>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="ti ti-file-text"></i>
+        <p>No hay presupuestos en esta sección.</p>
+    </div>
+{% endif %}
+
+{% endblock %}

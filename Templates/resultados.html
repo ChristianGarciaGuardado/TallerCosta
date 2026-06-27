@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Resultados{% endblock %}
+{% block topbar_title %}Estado de resultados{% endblock %}
+{% block content %}
+
+<!-- Selector de mes y año -->
+<form method="get" class="filter-bar" style="margin-bottom:20px">
+    <select name="mes" style="width:150px">
+        {% for i in range(1, 13) %}
+        <option value="{{ i }}" {% if i == mes %}selected{% endif %}>{{ meses[i-1] }}</option>
+        {% endfor %}
+    </select>
+    <select name="anio" style="width:100px">
+        {% for a in range(2024, 2030) %}
+        <option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-ghost"><i class="ti ti-refresh"></i> Ver</button>
+</form>
+
+<!-- KPIs principales -->
+<div class="kpi-grid" style="margin-bottom:20px">
+    <div class="kpi">
+        <div class="kpi-label">Ventas (presupuestado)</div>
+        <div class="kpi-value blue">{{ ventas | moneda }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Cobrado</div>
+        <div class="kpi-value green">{{ cobrado | moneda }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Faltante de cobrar</div>
+        <div class="kpi-value amber">{{ saldo_total | moneda }}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Total gastos</div>
+        <div class="kpi-value red">{{ total_gastos | moneda }}</div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <!-- Desglose gastos -->
+    <div class="card">
+        <div class="card-title">Desglose de gastos — {{ meses[mes-1] }} {{ anio }}</div>
+        {% if cats %}
+            {% for cat, monto in cats.items() | sort(attribute='1', reverse=True) %}
+            <div class="mini-row">
+                <span class="mini-label">{{ cat }}</span>
+                <span class="mini-val" style="color:var(--red)">{{ monto | moneda }}</span>
+            </div>
+            {% endfor %}
+            <hr class="divider">
+            <div class="mini-row">
+                <span style="font-weight:600">Total gastos</span>
+                <span style="font-weight:600;color:var(--red);font-size:15px">{{ total_gastos | moneda }}</span>
+            </div>
+        {% else %}
+            <div style="text-align:center;padding:20px;color:var(--text-light);font-size:13px">
+                Sin gastos registrados en este período.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Resultado -->
+    <div>
+        <div class="card" style="border-top:3px solid var(--green)">
+            <div class="card-title">Resultado financiero</div>
+            <div style="font-size:12px;color:var(--text-light);margin-bottom:8px">Cobrado − Gastos</div>
+            <div style="font-size:32px;font-weight:700;color:{% if resultado_financiero >= 0 %}var(--green){% else %}var(--red){% endif %}">
+                {{ resultado_financiero | moneda }}
+            </div>
+            {% if cobrado > 0 %}
+            <div style="font-size:12px;color:var(--text-light);margin-top:6px">
+                Margen: {{ ((resultado_financiero / cobrado) * 100) | round(1) }}%
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card" style="border-top:3px solid var(--blue)">
+            <div class="card-title">Resultado económico</div>
+            <div style="font-size:12px;color:var(--text-light);margin-bottom:8px">Ventas − Gastos</div>
+            <div style="font-size:32px;font-weight:700;color:{% if resultado_economico >= 0 %}var(--green){% else %}var(--red){% endif %}">
+                {{ resultado_economico | moneda }}
+            </div>
+            {% if ventas > 0 %}
+            <div style="font-size:12px;color:var(--text-light);margin-top:6px">
+                Margen sobre ventas: {{ ((resultado_economico / ventas) * 100) | round(1) }}%
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="alert alert-blue">
+            <i class="ti ti-info-circle"></i>
+            <div>
+                <strong>Financiero</strong> = lo que realmente entró en caja este mes.<br>
+                <strong>Económico</strong> = lo que generó el taller, incluido lo todavía no cobrado.
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
