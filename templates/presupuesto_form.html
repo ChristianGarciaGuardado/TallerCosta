@@ -6,7 +6,7 @@
 {% endblock %}
 {% block content %}
 
-<div style="max-width:700px">
+<div style="max-width:750px">
 <form method="post" id="form-pres">
 
     <div class="card">
@@ -17,7 +17,8 @@
                 <select name="cliente_id" required>
                     <option value="">Seleccioná un cliente...</option>
                     {% for c in clientes %}
-                    <option value="{{ c.id }}" {% if presupuesto and presupuesto.cliente_id == c.id %}selected{% endif %}>
+                    <option value="{{ c.id }}"
+                        {% if presupuesto and presupuesto.cliente_id == c.id %}selected{% endif %}>
                         {{ c.empresa }}
                     </option>
                     {% endfor %}
@@ -27,34 +28,43 @@
                 <label>Tipo de equipo</label>
                 <select name="tipo_equipo">
                     <option value="">Seleccionar...</option>
-                    {% for tipo in ['Camión','Pluma / Grúa','Autoelevador / Clark','Excavadora','Retroexcavadora','Compactadora','Generador','Compresor','Otro'] %}
-                    <option {% if presupuesto and presupuesto.tipo_equipo == tipo %}selected{% endif %}>{{ tipo }}</option>
+                    {% for tipo in tipos_equipo %}
+                    <option {% if presupuesto and presupuesto.tipo_equipo == tipo %}selected{% endif %}>
+                        {{ tipo }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
             <div class="field">
                 <label>Marca</label>
-                <input type="text" name="marca" value="{{ presupuesto.marca if presupuesto else '' }}" placeholder="Ej: Scania">
+                <input type="text" name="marca"
+                       value="{{ presupuesto.marca if presupuesto else '' }}"
+                       placeholder="Ej: Scania">
             </div>
             <div class="field">
                 <label>Modelo</label>
-                <input type="text" name="modelo" value="{{ presupuesto.modelo if presupuesto else '' }}" placeholder="Ej: R450">
+                <input type="text" name="modelo"
+                       value="{{ presupuesto.modelo if presupuesto else '' }}"
+                       placeholder="Ej: R450">
             </div>
             <div class="field">
                 <label>Identificador (patente / serie / motor)</label>
-                <input type="text" name="identificador" value="{{ presupuesto.identificador if presupuesto else '' }}">
+                <input type="text" name="identificador"
+                       value="{{ presupuesto.identificador if presupuesto else '' }}">
             </div>
             <div class="field">
                 <label>Tipo de trabajo</label>
                 <select name="tipo_trabajo">
                     <option value="">Seleccionar...</option>
-                    {% for tipo in ['Mecánica general','Motor','Transmisión','Hidráulica','Eléctrico','Neumático','Chapa y pintura','Restauración','Preventivo','Otro'] %}
-                    <option {% if presupuesto and presupuesto.tipo_trabajo == tipo %}selected{% endif %}>{{ tipo }}</option>
+                    {% for tipo in tipos_trabajo %}
+                    <option {% if presupuesto and presupuesto.tipo_trabajo == tipo %}selected{% endif %}>
+                        {{ tipo }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
             <div class="field form-full">
-                <label>Observaciones</label>
+                <label>Observaciones / condiciones particulares</label>
                 <textarea name="observaciones">{{ presupuesto.observaciones if presupuesto else '' }}</textarea>
             </div>
         </div>
@@ -63,55 +73,82 @@
     <div class="card">
         <div class="card-title">Ítems del presupuesto</div>
 
-        <div style="display:grid;grid-template-columns:2fr 70px 110px 100px 30px;gap:8px;margin-bottom:8px;padding:0 4px">
+        <!-- Cabecera de la tabla de ítems -->
+        <div style="display:grid;grid-template-columns:2fr 70px 110px 80px 90px 30px;
+                    gap:8px;margin-bottom:6px;padding:0 4px">
             <span style="font-size:11px;color:var(--text-light);font-weight:500">DESCRIPCIÓN</span>
             <span style="font-size:11px;color:var(--text-light);font-weight:500">CANT.</span>
             <span style="font-size:11px;color:var(--text-light);font-weight:500">P. UNIT. ($)</span>
+            <span style="font-size:11px;color:var(--text-light);font-weight:500">DESC. (%)</span>
             <span style="font-size:11px;color:var(--text-light);font-weight:500">SUBTOTAL</span>
             <span></span>
         </div>
 
         <div id="items-container">
-            {% if presupuesto and presupuesto.items %}
-                {% for item in presupuesto.items %}
-                <div class="item-row" style="display:grid;grid-template-columns:2fr 70px 110px 100px 30px;gap:8px;margin-bottom:8px;align-items:center">
-                    <input type="text" name="descripcion[]" value="{{ item.descripcion }}" placeholder="Descripción..." required>
-                    <input type="number" name="cantidad[]" value="{{ item.cantidad }}" min="0" step="0.01" oninput="calcSubtotal(this)">
-                    <input type="number" name="precio[]" value="{{ item.precio_unitario }}" min="0" step="0.01" oninput="calcSubtotal(this)">
-                    <div class="subtotal-display" style="font-size:13px;font-weight:500;text-align:right;padding-right:4px;color:var(--text)">
-                        ${{ '{:,.0f}'.format(item.subtotal).replace(',','.') }}
-                    </div>
-                    <button type="button" onclick="removeItem(this)" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px;display:flex;align-items:center">
-                        <i class="ti ti-x"></i>
-                    </button>
+        {% if presupuesto and presupuesto.items %}
+            {% for item in presupuesto.items %}
+            <div class="item-row" style="display:grid;grid-template-columns:2fr 70px 110px 80px 90px 30px;
+                                         gap:8px;margin-bottom:8px;align-items:center">
+                <input type="text" name="descripcion[]" value="{{ item.descripcion }}" required>
+                <input type="number" name="cantidad[]" value="{{ item.cantidad }}"
+                       min="0" step="0.01" oninput="calcSubtotal(this)">
+                <input type="number" name="precio[]" value="{{ item.precio_unitario }}"
+                       min="0" step="0.01" oninput="calcSubtotal(this)">
+                <input type="number" name="descuento[]" value="{{ item.descuento or 0 }}"
+                       min="0" max="100" step="0.1" oninput="calcSubtotal(this)">
+                <div class="subtotal-display" style="font-size:13px;font-weight:500;
+                            text-align:right;padding-right:4px;color:var(--text)">
+                    ${{ '{:,.0f}'.format(item.subtotal).replace(',','.') }}
                 </div>
-                {% endfor %}
-            {% else %}
-                <div class="item-row" style="display:grid;grid-template-columns:2fr 70px 110px 100px 30px;gap:8px;margin-bottom:8px;align-items:center">
-                    <input type="text" name="descripcion[]" placeholder="Descripción..." required>
-                    <input type="number" name="cantidad[]" value="1" min="0" step="0.01" oninput="calcSubtotal(this)">
-                    <input type="number" name="precio[]" value="" min="0" step="0.01" placeholder="0" oninput="calcSubtotal(this)">
-                    <div class="subtotal-display" style="font-size:13px;font-weight:500;text-align:right;padding-right:4px;color:var(--text)">$0</div>
-                    <button type="button" onclick="removeItem(this)" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px;display:flex;align-items:center">
-                        <i class="ti ti-x"></i>
-                    </button>
-                </div>
-            {% endif %}
+                <button type="button" onclick="removeItem(this)"
+                        style="background:none;border:none;cursor:pointer;
+                               color:var(--text-light);font-size:18px">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="item-row" style="display:grid;grid-template-columns:2fr 70px 110px 80px 90px 30px;
+                                         gap:8px;margin-bottom:8px;align-items:center">
+                <input type="text" name="descripcion[]" placeholder="Descripción..." required>
+                <input type="number" name="cantidad[]" value="1" min="0" step="0.01"
+                       oninput="calcSubtotal(this)">
+                <input type="number" name="precio[]" value="" min="0" step="0.01"
+                       placeholder="0" oninput="calcSubtotal(this)">
+                <input type="number" name="descuento[]" value="0" min="0" max="100"
+                       step="0.1" oninput="calcSubtotal(this)">
+                <div class="subtotal-display" style="font-size:13px;font-weight:500;
+                            text-align:right;padding-right:4px;color:var(--text)">$0</div>
+                <button type="button" onclick="removeItem(this)"
+                        style="background:none;border:none;cursor:pointer;
+                               color:var(--text-light);font-size:18px">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+        {% endif %}
         </div>
 
-        <button type="button" onclick="addItem()" class="btn btn-ghost btn-sm" style="margin-top:4px">
+        <button type="button" onclick="addItem()" class="btn btn-ghost btn-sm"
+                style="margin-top:4px">
             <i class="ti ti-plus"></i> Agregar ítem
         </button>
 
-        <div style="background:var(--navy);border-radius:var(--radius);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+        <!-- Total -->
+        <div style="background:var(--navy);border-radius:var(--radius);
+                    padding:12px 16px;display:flex;justify-content:space-between;
+                    align-items:center;margin-top:14px">
             <span style="color:rgba(255,255,255,0.7);font-size:13px">Total presupuesto</span>
             <strong id="total-display" style="color:#fff;font-size:18px">$0</strong>
         </div>
     </div>
 
     <div style="display:flex;gap:8px;align-items:center">
-        <button type="submit" name="estado" value="borrador" class="btn btn-ghost">Guardar borrador</button>
-        <button type="submit" name="estado" value="enviado" class="btn btn-primary">Guardar y marcar enviado</button>
+        <button type="submit" name="estado" value="borrador" class="btn btn-ghost">
+            Guardar borrador
+        </button>
+        <button type="submit" name="estado" value="enviado" class="btn btn-primary">
+            Guardar y marcar enviado
+        </button>
         <a href="/presupuestos" class="btn btn-ghost">Cancelar</a>
     </div>
 
@@ -119,12 +156,17 @@
 </div>
 
 <script>
+function fmt(n) {
+    return '$' + Math.round(n).toLocaleString('es-AR');
+}
+
 function calcSubtotal(input) {
     const row = input.closest('.item-row');
     const cant = parseFloat(row.querySelector('input[name="cantidad[]"]').value) || 0;
     const precio = parseFloat(row.querySelector('input[name="precio[]"]').value) || 0;
-    const sub = cant * precio;
-    row.querySelector('.subtotal-display').textContent = '$' + sub.toLocaleString('es-AR', {maximumFractionDigits:0});
+    const desc = parseFloat(row.querySelector('input[name="descuento[]"]').value) || 0;
+    const sub = cant * precio * (1 - desc / 100);
+    row.querySelector('.subtotal-display').textContent = fmt(sub);
     updateTotal();
 }
 
@@ -133,22 +175,24 @@ function updateTotal() {
     document.querySelectorAll('.item-row').forEach(row => {
         const cant = parseFloat(row.querySelector('input[name="cantidad[]"]').value) || 0;
         const precio = parseFloat(row.querySelector('input[name="precio[]"]').value) || 0;
-        total += cant * precio;
+        const desc = parseFloat(row.querySelector('input[name="descuento[]"]').value) || 0;
+        total += cant * precio * (1 - desc / 100);
     });
-    document.getElementById('total-display').textContent = '$' + total.toLocaleString('es-AR', {maximumFractionDigits:0});
+    document.getElementById('total-display').textContent = fmt(total);
 }
 
 function addItem() {
     const container = document.getElementById('items-container');
     const div = document.createElement('div');
     div.className = 'item-row';
-    div.style.cssText = 'display:grid;grid-template-columns:2fr 70px 110px 100px 30px;gap:8px;margin-bottom:8px;align-items:center';
+    div.style.cssText = 'display:grid;grid-template-columns:2fr 70px 110px 80px 90px 30px;gap:8px;margin-bottom:8px;align-items:center';
     div.innerHTML = `
         <input type="text" name="descripcion[]" placeholder="Descripción...">
         <input type="number" name="cantidad[]" value="1" min="0" step="0.01" oninput="calcSubtotal(this)">
         <input type="number" name="precio[]" value="" min="0" step="0.01" placeholder="0" oninput="calcSubtotal(this)">
+        <input type="number" name="descuento[]" value="0" min="0" max="100" step="0.1" oninput="calcSubtotal(this)">
         <div class="subtotal-display" style="font-size:13px;font-weight:500;text-align:right;padding-right:4px;color:var(--text)">$0</div>
-        <button type="button" onclick="removeItem(this)" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px;display:flex;align-items:center">
+        <button type="button" onclick="removeItem(this)" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px">
             <i class="ti ti-x"></i>
         </button>`;
     container.appendChild(div);

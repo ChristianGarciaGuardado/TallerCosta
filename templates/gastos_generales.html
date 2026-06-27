@@ -18,7 +18,7 @@
                     <label>Categoría *</label>
                     <select name="categoria" required>
                         <option value="">Seleccionar...</option>
-                        {% for cat in ['Alquiler','Servicios (luz/agua/gas)','Seguros','Impuestos','Herramientas','Equipamiento','Administración','Fletes','Otros'] %}
+                        {% for cat in categorias %}
                         <option>{{ cat }}</option>
                         {% endfor %}
                     </select>
@@ -34,7 +34,8 @@
                 <div class="field">
                     <label>Forma de pago</label>
                     <select name="forma_pago">
-                        {% for f in ['Efectivo','Transferencia','Débito automático','Cheque'] %}
+                        <option value="">Seleccionar...</option>
+                        {% for f in formas_pago %}
                         <option>{{ f }}</option>
                         {% endfor %}
                     </select>
@@ -52,52 +53,55 @@
         </form>
     </div>
 
-    <!-- Lista de gastos -->
+    <!-- Lista -->
     <div>
         <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">
             Últimos 50 gastos generales
         </div>
         {% if gastos %}
-            <div class="card" style="padding:0">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Categoría</th>
-                            <th>Proveedor</th>
-                            <th>Forma pago</th>
-                            <th style="text-align:right">Monto</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for g in gastos %}
-                        <tr>
-                            <td>{{ g.fecha.strftime('%d/%m/%Y') }}</td>
-                            <td>{{ g.categoria }}</td>
-                            <td>{{ g.proveedor or '—' }}</td>
-                            <td>{{ g.forma_pago or '—' }}</td>
-                            <td style="text-align:right;font-weight:500;color:var(--red)">{{ g.monto | moneda }}</td>
-                            <td>
-                                <form method="post" action="/gastos-generales/{{ g.id }}/eliminar">
-                                    <button type="submit" style="background:none;border:none;cursor:pointer;color:var(--text-light)" onclick="return confirm('¿Eliminar?')">
-                                        <i class="ti ti-trash" style="font-size:14px"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+        <div class="card" style="padding:0">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Categoría</th>
+                        <th>Proveedor</th>
+                        <th>Forma pago</th>
+                        <th style="text-align:right">Monto</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for g in gastos %}
+                    <tr>
+                        <td>{{ g.fecha.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ g.categoria }}</td>
+                        <td>{{ g.proveedor or '—' }}</td>
+                        <td>{{ g.forma_pago or '—' }}</td>
+                        <td style="text-align:right;font-weight:500;color:var(--red)">
+                            {{ g.monto | moneda }}
+                        </td>
+                        <td>
+                            <form method="post" action="/gastos-generales/{{ g.id }}/eliminar">
+                                <button type="submit"
+                                        style="background:none;border:none;cursor:pointer;color:var(--text-light)"
+                                        onclick="return confirm('¿Eliminar?')">
+                                    <i class="ti ti-trash" style="font-size:14px"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
-            <div class="empty-state">
-                <i class="ti ti-receipt"></i>
-                <p>No hay gastos generales cargados.</p>
-            </div>
+        <div class="empty-state">
+            <i class="ti ti-receipt"></i>
+            <p>No hay gastos generales cargados.</p>
+        </div>
         {% endif %}
     </div>
-
 </div>
 
 <script>

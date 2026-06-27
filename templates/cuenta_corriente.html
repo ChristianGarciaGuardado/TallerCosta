@@ -3,7 +3,6 @@
 {% block topbar_title %}Cuentas corrientes{% endblock %}
 {% block content %}
 
-<!-- Selector de cliente -->
 <form method="get" class="filter-bar">
     <select name="cliente_id" style="width:280px" onchange="this.form.submit()">
         <option value="">Seleccioná un cliente para ver su cuenta...</option>
@@ -19,19 +18,21 @@
 
     <!-- Resumen del cliente -->
     <div class="card" style="border-top:3px solid var(--navy);margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
-                <div style="font-size:18px;font-weight:600;color:var(--navy)">{{ cliente_sel.empresa }}</div>
+                <div style="font-size:18px;font-weight:600;color:var(--navy)">
+                    {{ cliente_sel.empresa }}
+                </div>
                 {% if cliente_sel.telefono %}
                 <div style="font-size:13px;color:var(--text-light);margin-top:4px">
                     <i class="ti ti-phone"></i> {{ cliente_sel.telefono }}
                 </div>
                 {% endif %}
             </div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;text-align:right">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;text-align:right">
                 <div>
                     <div style="font-size:11px;color:var(--text-light)">Total presupuestado</div>
-                    <div style="font-size:16px;font-weight:600;color:var(--text)">
+                    <div style="font-size:16px;font-weight:600">
                         {{ trabajos | sum(attribute='presupuestado') | int | moneda }}
                     </div>
                 </div>
@@ -53,21 +54,18 @@
 
     {% if trabajos %}
         {% for t in trabajos %}
-        <!-- Trabajo con sus cobros -->
         <div class="card" style="margin-bottom:14px">
 
-            <!-- Header del trabajo -->
+            <!-- Header trabajo -->
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
                 <div style="display:flex;align-items:center;gap:10px">
-                    {% if t.estado == 'en_curso' %}
-                        <span class="badge badge-amber">En curso</span>
-                    {% elif t.estado == 'finalizado' %}
-                        <span class="badge badge-red">Finalizado</span>
-                    {% else %}
-                        <span class="badge badge-green">Entregado</span>
-                    {% endif %}
+                    {% if t.estado == 'en_curso' %}<span class="badge badge-amber">En curso</span>
+                    {% elif t.estado == 'finalizado' %}<span class="badge badge-red">Finalizado</span>
+                    {% else %}<span class="badge badge-green">Entregado</span>{% endif %}
                     <div>
-                        <div style="font-size:13px;font-weight:600">{{ t.numero }} — {{ t.tipo_trabajo }}</div>
+                        <div style="font-size:13px;font-weight:600">
+                            {{ t.numero }} — {{ t.tipo_trabajo }}
+                        </div>
                         <div style="font-size:11px;color:var(--text-light)">
                             {{ t.tipo_equipo }} {{ t.marca }} {{ t.modelo }}
                             {% if t.identificador %} &bull; {{ t.identificador }}{% endif %}
@@ -81,18 +79,23 @@
             </div>
 
             <!-- Estado de cuenta del trabajo -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;background:var(--gray-100);border-radius:var(--radius);overflow:hidden;margin-bottom:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;
+                        background:var(--gray-100);border-radius:var(--radius);
+                        overflow:hidden;margin-bottom:12px">
                 <div style="padding:10px 14px;border-right:1px solid var(--border)">
                     <div style="font-size:11px;color:var(--text-light)">Presupuestado</div>
                     <div style="font-size:15px;font-weight:600">{{ t.presupuestado | moneda }}</div>
                 </div>
                 <div style="padding:10px 14px;border-right:1px solid var(--border)">
                     <div style="font-size:11px;color:var(--text-light)">Cobrado</div>
-                    <div style="font-size:15px;font-weight:600;color:var(--green)">{{ t.total_cobrado | moneda }}</div>
+                    <div style="font-size:15px;font-weight:600;color:var(--green)">
+                        {{ t.total_cobrado | moneda }}
+                    </div>
                 </div>
                 <div style="padding:10px 14px">
                     <div style="font-size:11px;color:var(--text-light)">Saldo</div>
-                    <div style="font-size:15px;font-weight:600;color:{% if t.saldo > 0 %}var(--red){% else %}var(--green){% endif %}">
+                    <div style="font-size:15px;font-weight:600;
+                                color:{% if t.saldo > 0 %}var(--red){% else %}var(--green){% endif %}">
                         {{ t.saldo | moneda }}
                     </div>
                 </div>
@@ -101,19 +104,29 @@
             <!-- Historial de cobros -->
             {% if t.cobros %}
             <div style="margin-bottom:12px">
-                <div style="font-size:11px;font-weight:600;color:var(--text-light);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Cobros</div>
+                <div style="font-size:11px;font-weight:600;color:var(--text-light);
+                            margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">
+                    Cobros
+                </div>
                 {% for c in t.cobros %}
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-                    <div style="display:flex;align-items:center;gap:10px">
+                <div style="display:flex;justify-content:space-between;align-items:center;
+                            padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+                    <div style="display:flex;align-items:center;gap:8px">
                         <span style="color:var(--text-light)">{{ c.fecha.strftime('%d/%m/%Y') }}</span>
                         <span class="badge badge-gray">{{ c.forma_pago }}</span>
-                        {% if c.comprobante %}<span style="color:var(--text-light)">N° {{ c.comprobante }}</span>{% endif %}
-                        {% if c.notas %}<span style="color:var(--text-light)">{{ c.notas }}</span>{% endif %}
+                        {% if c.comprobante %}
+                        <span style="color:var(--text-light)">N° {{ c.comprobante }}</span>
+                        {% endif %}
+                        {% if c.notas %}
+                        <span style="color:var(--text-light)">{{ c.notas }}</span>
+                        {% endif %}
                     </div>
                     <div style="display:flex;align-items:center;gap:8px">
                         <span style="font-weight:600;color:var(--green)">{{ c.monto | moneda }}</span>
                         <form method="post" action="/trabajos/cobro/{{ c.id }}/eliminar">
-                            <button type="submit" style="background:none;border:none;cursor:pointer;color:var(--text-light)" onclick="return confirm('¿Eliminar este cobro?')">
+                            <button type="submit"
+                                    style="background:none;border:none;cursor:pointer;color:var(--text-light)"
+                                    onclick="return confirm('¿Eliminar este cobro?')">
                                 <i class="ti ti-trash" style="font-size:14px"></i>
                             </button>
                         </form>
@@ -123,21 +136,24 @@
             </div>
             {% endif %}
 
-            <!-- Formulario de cobro inline -->
-            {% if t.saldo > 0 and t.estado != 'en_curso' or t.saldo > 0 %}
-            <div id="cobro-form-{{ t.id }}" style="display:none;background:var(--gray-100);border-radius:var(--radius);padding:14px">
+            <!-- Formulario cobro inline -->
+            {% if t.saldo > 0 %}
+            <div id="cobro-form-{{ t.id }}"
+                 style="display:none;background:var(--gray-100);border-radius:var(--radius);padding:14px">
                 <form method="post" action="/trabajos/{{ t.id }}/cobro">
-                    <!-- redirige de vuelta a cuenta corriente -->
-                    <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--text)">Registrar cobro para {{ t.numero }}</div>
+                    <div style="font-size:12px;font-weight:600;margin-bottom:10px">
+                        Registrar cobro para {{ t.numero }}
+                    </div>
                     <div class="form-grid form-grid-3" style="margin-bottom:10px">
                         <div class="field">
                             <label>Monto ($) *</label>
-                            <input type="number" name="monto" min="0" step="0.01" placeholder="{{ t.saldo }}" required>
+                            <input type="number" name="monto" min="0" step="0.01"
+                                   placeholder="{{ t.saldo }}" required>
                         </div>
                         <div class="field">
                             <label>Forma de pago *</label>
                             <select name="forma_pago" required>
-                                {% for f in ['Efectivo','Transferencia','Cheque','Tarjeta Débito','Tarjeta Crédito'] %}
+                                {% for f in formas_pago %}
                                 <option>{{ f }}</option>
                                 {% endfor %}
                             </select>
@@ -159,12 +175,15 @@
                         <button type="submit" class="btn btn-green btn-sm">
                             <i class="ti ti-cash"></i> Confirmar cobro
                         </button>
-                        <button type="button" onclick="toggleCobro({{ t.id }})" class="btn btn-ghost btn-sm">Cancelar</button>
+                        <button type="button" onclick="toggleCobro({{ t.id }})"
+                                class="btn btn-ghost btn-sm">Cancelar</button>
                     </div>
                 </form>
             </div>
 
-            <button onclick="toggleCobro({{ t.id }})" class="btn btn-green btn-sm" id="btn-cobro-{{ t.id }}">
+            <button onclick="toggleCobro({{ t.id }})"
+                    class="btn btn-green btn-sm"
+                    id="btn-cobro-{{ t.id }}">
                 <i class="ti ti-plus"></i> Registrar cobro
             </button>
             {% else %}
@@ -175,7 +194,6 @@
 
         </div>
         {% endfor %}
-
     {% else %}
         <div class="empty-state">
             <i class="ti ti-tool"></i>
@@ -191,7 +209,6 @@
 {% endif %}
 
 <script>
-// Mostrar/ocultar formulario de cobro por trabajo
 function toggleCobro(id) {
     const form = document.getElementById('cobro-form-' + id);
     const btn = document.getElementById('btn-cobro-' + id);
@@ -199,8 +216,6 @@ function toggleCobro(id) {
     form.style.display = visible ? 'none' : 'block';
     btn.style.display = visible ? 'inline-flex' : 'none';
 }
-
-// Poner fecha de hoy en todos los campos de fecha
 document.querySelectorAll('.fecha-hoy').forEach(el => {
     el.value = new Date().toISOString().split('T')[0];
 });

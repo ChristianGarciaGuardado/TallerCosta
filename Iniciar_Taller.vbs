@@ -17,7 +17,7 @@ End If
 
 ' Esperar 1 segundo y abrir el navegador
 WScript.Sleep 1500
-oShell.Run "http://192.168.0.12:5000", 1, False
+oShell.Run "http://192.168.0.12:8080", 1, False
 
 ' Ejecutar la app Flask en segundo plano (sin ventana CMD visible)
 ' El 0 al final = ventana oculta

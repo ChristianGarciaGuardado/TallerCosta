@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Configuración{% endblock %}
+{% block topbar_title %}Configuración de listas{% endblock %}
+{% block content %}
+
+<div class="alert alert-blue">
+    <i class="ti ti-info-circle"></i>
+    Desde acá podés agregar, modificar o eliminar las opciones que aparecen en los desplegables de toda la app.
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+{% for tipo, nombre in tipos.items() %}
+<div class="card">
+    <div class="card-title">{{ nombre }}</div>
+
+    <!-- Lista de opciones existentes -->
+    {% if opciones[tipo] %}
+    <div style="margin-bottom:12px">
+        {% for o in opciones[tipo] %}
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding:6px 8px;border-bottom:1px solid var(--border);font-size:13px">
+            <span>{{ o.valor }}</span>
+            <form method="post" action="/configuracion/{{ o.id }}/eliminar" style="display:inline">
+                <button type="submit"
+                        onclick="return confirm('¿Eliminar {{ o.valor }}?')"
+                        style="background:none;border:none;cursor:pointer;color:var(--text-light)">
+                    <i class="ti ti-trash" style="font-size:14px"></i>
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="color:var(--text-light);font-size:13px;margin-bottom:12px">
+        Sin opciones cargadas.
+    </div>
+    {% endif %}
+
+    <!-- Formulario para agregar nueva opción -->
+    <form method="post" action="/configuracion/agregar" style="display:flex;gap:8px">
+        <input type="hidden" name="tipo" value="{{ tipo }}">
+        <input type="text" name="valor" placeholder="Nueva opción..." required
+               style="flex:1;padding:7px 10px;border:1px solid var(--border);
+                      border-radius:var(--radius-sm);font-size:13px">
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="ti ti-plus"></i> Agregar
+        </button>
+    </form>
+</div>
+{% endfor %}
+</div>
+
+{% endblock %}
