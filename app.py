@@ -527,14 +527,13 @@ def pdf_presupuesto(id):
          Paragraph('<b>Tipo de Trabajo:</b>', lbl), Paragraph(p.tipo_trabajo or '', val),
          Paragraph('', lbl), Paragraph('', val)],
     ]
-    equipo_table = Table(equipo_data, colWidths=[3.5*cm, 3.5*cm, 2.5*cm, 5.5*cm, 0*cm, 0*cm])
+    equipo_table = Table(equipo_data, colWidths=[3*cm, 3*cm, 2*cm, 3*cm, 2*cm, 4*cm])
     equipo_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, border_color),
         ('BACKGROUND', (0,0), (-1,-1), gray_light),
         ('TOPPADDING', (0,0), (-1,-1), 3),
         ('BOTTOMPADDING', (0,0), (-1,-1), 3),
         ('FONTSIZE', (0,0), (-1,-1), 8),
-        ('SPAN', (3,1), (5,1)),
     ]))
     elements.append(equipo_table)
     elements.append(Spacer(1, 0.3*cm))
