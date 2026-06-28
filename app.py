@@ -442,7 +442,7 @@ def pdf_presupuesto(id):
                       ParagraphStyle('s', fontSize=9))
         ]]
 
-    header_table = Table(header_data, colWidths=[5*cm, 17*cm])
+    header_table = Table(header_data, colWidths=[5*cm, 12*cm])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('LEFTPADDING', (0,0), (-1,-1), 0),
