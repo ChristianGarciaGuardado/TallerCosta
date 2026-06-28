@@ -12,7 +12,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 import os
 import io
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 # ─── Base de datos ────────────────────────────────────────────────────────────
 # Usa PostgreSQL en Render (variable DATABASE_URL) o SQLite localmente
@@ -421,6 +421,8 @@ def pdf_presupuesto(id):
 
     # ── Header: Logo + datos taller ───────────────────────
     logo_path = os.path.join(app.root_path, 'static', 'Logo.png')
+    print(f"Buscando logo en: {logo_path}", flush=True)
+    print(f"Existe: {os.path.exists(logo_path)}", flush=True)
     header_data = []
     if os.path.exists(logo_path):
         logo = Image(logo_path, width=4*cm, height=2.5*cm)
