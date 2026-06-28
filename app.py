@@ -425,7 +425,7 @@ def pdf_presupuesto(id):
     print(f"Existe: {os.path.exists(logo_path)}", flush=True)
     header_data = []
     if os.path.exists(logo_path):
-        logo = Image(logo_path)
+        logo = Image(logo_path, width=6,5*cm, height=2.5*cm)
         servicios = Paragraph(
             "Reparación integral de grúas y autoelevadores<br/>"
             "Sistemas hidráulicos<br/>"
