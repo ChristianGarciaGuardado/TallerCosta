@@ -11,6 +11,15 @@
         </button>
     </form>
     {% elif trabajo.estado == 'finalizado' %}
+    {% if trabajo.estado != 'anulado' and trabajo.estado != 'entregado' %}
+<form method="post" action="/trabajos/{{ trabajo.id }}/estado">
+    <input type="hidden" name="estado" value="anulado">
+    <button type="submit" class="btn btn-ghost btn-sm"
+            onclick="return confirm('¿Anular este trabajo? Quedará registrado pero inactivo.')">
+        <i class="ti ti-ban"></i> Anular
+    </button>
+</form>
+{% endif %}
     <form method="post" action="/trabajos/{{ trabajo.id }}/estado">
         <input type="hidden" name="estado" value="entregado">
         <button type="submit" class="btn btn-green"

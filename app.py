@@ -137,6 +137,7 @@ class GastoGeneral(db.Model):
     monto = db.Column(db.Float, default=0)
     forma_pago = db.Column(db.String(30))
     comprobante = db.Column(db.String(50))
+    anulado = db.Column(db.Boolean, default=False)
     notas = db.Column(db.Text)
 
 class OpcionLista(db.Model):
@@ -173,7 +174,7 @@ def fmt_moneda(valor):
 
 def get_opciones(tipo):
     """Devuelve la lista de opciones para un tipo de desplegable"""
-    return [o.valor for o in OpcionLista.query.filter_by(tipo=tipo).order_by(OpcionLista.orden, OpcionLista.valor).all()]
+    return [o.valor for o in OpcionLista.query.filter_by(tipo=tipo).order_by(OpcionLista.valor).all()]
 
 def seed_opciones():
     """Carga las opciones por defecto si la tabla está vacía"""
@@ -494,7 +495,7 @@ def pdf_presupuesto(id):
          Paragraph('<b>Empresa:</b>', lbl), Paragraph(p.cliente.empresa or '', val)],
         [Paragraph('<b>N° Reparación:</b>', lbl), Paragraph('', val),
          Paragraph('<b>Válido hasta:</b>', lbl), Paragraph(valido_hasta.strftime('%d/%m/%Y'), val),
-         Paragraph('<b>Contacto:</b>', lbl), Paragraph(p.cliente.contacto or '', val)],
+         Paragraph('<b>Telefono:</b>', lbl), Paragraph(p.cliente.telefono or '', val)],
     ]
     info_table = Table(info_data, colWidths=[3*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 4*cm])
     info_table.setStyle(TableStyle([
@@ -739,6 +740,14 @@ def eliminar_cobro(id):
     db.session.commit()
     return redirect(url_for('cuenta_corriente') + f'?cliente_id={t.cliente_id}')
 
+@app.route('/trabajos/<int:id>/notas', methods=['POST'])
+def actualizar_notas_trabajo(id):
+    """Actualiza las observaciones/detalle de un trabajo"""
+    t = Trabajo.query.get_or_404(id)
+    t.observaciones = request.form.get('observaciones', '')
+    db.session.commit()
+    return redirect(url_for('detalle_trabajo', id=id))
+
 # ═══════════════════════════════════════════════════════
 # RUTAS — CUENTA CORRIENTE
 # ═══════════════════════════════════════════════════════
@@ -765,7 +774,7 @@ def cuenta_corriente():
 def historial():
     cliente_q = request.args.get('cliente', '')
     maquina_q = request.args.get('maquina', '')
-    q = Trabajo.query.filter_by(estado='entregado')
+    q = Trabajo.query
     if cliente_q:
         q = q.join(Cliente).filter(Cliente.empresa.ilike(f'%{cliente_q}%'))
     if maquina_q:
@@ -799,10 +808,10 @@ def gastos_generales():
     return render_template('gastos_generales.html', gastos=lista,
                            categorias=categorias, formas_pago=formas_pago)
 
-@app.route('/gastos-generales/<int:id>/eliminar', methods=['POST'])
-def eliminar_gasto_general(id):
+@app.route('/gastos-generales/<int:id>/anular', methods=['POST'])
+def anular_gasto_general(id):
     g = GastoGeneral.query.get_or_404(id)
-    db.session.delete(g)
+    g.anulado = True
     db.session.commit()
     return redirect(url_for('gastos_generales'))
 

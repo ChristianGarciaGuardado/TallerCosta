@@ -42,6 +42,8 @@
             <span class="badge badge-amber">En curso</span>
         {% elif t.estado == 'finalizado' %}
             <span class="badge badge-red">Finalizado sin entregar</span>
+        {% elif t.estado == 'anulado' %}
+            <span class="badge badge-gray">Anulado</span>
         {% endif %}
 
         <div class="work-info">

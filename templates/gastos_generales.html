@@ -73,7 +73,7 @@
                 </thead>
                 <tbody>
                     {% for g in gastos %}
-                    <tr>
+                    <tr {% if g.anulado %}style="opacity:0.5;text-decoration:line-through"{% endif %}>
                         <td>{{ g.fecha.strftime('%d/%m/%Y') }}</td>
                         <td>{{ g.categoria }}</td>
                         <td>{{ g.proveedor or '—' }}</td>
@@ -82,11 +82,11 @@
                             {{ g.monto | moneda }}
                         </td>
                         <td>
-                            <form method="post" action="/gastos-generales/{{ g.id }}/eliminar">
+                            <form method="post" action="/gastos-generales/{{ g.id }}/anular">
                                 <button type="submit"
                                         style="background:none;border:none;cursor:pointer;color:var(--text-light)"
-                                        onclick="return confirm('¿Eliminar?')">
-                                    <i class="ti ti-trash" style="font-size:14px"></i>
+                                        onclick="return confirm('¿Anular este gasto?')">
+                                    <i class="ti ti-ban" style="font-size:14px"></i>
                                 </button>
                             </form>
                         </td>

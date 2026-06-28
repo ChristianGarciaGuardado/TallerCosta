@@ -14,6 +14,7 @@
         <option value="">Todos los estados</option>
         <option value="en_curso" {% if estado == 'en_curso' %}selected{% endif %}>En curso</option>
         <option value="finalizado" {% if estado == 'finalizado' %}selected{% endif %}>Finalizado</option>
+        <option value="anulado" {% if estado == 'anulado' %}selected{% endif %}>Anulado</option>
     </select>
     <input type="text" name="maquina" value="{{ maquina }}" placeholder="Buscar por máquina..." style="flex:1">
     <button type="submit" class="btn btn-ghost"><i class="ti ti-search"></i></button>
@@ -26,6 +27,8 @@
             <span class="badge badge-amber">En curso</span>
         {% elif t.estado == 'finalizado' %}
             <span class="badge badge-red">Finalizado</span>
+        {% elif t.estado == 'anulado' %}
+            <span class="badge badge-gray">Anulado</span>
         {% endif %}
         <div class="work-info">
             <div class="work-name">{{ t.cliente.empresa }} — {{ t.marca }} {{ t.modelo }}</div>
