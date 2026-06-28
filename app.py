@@ -527,7 +527,7 @@ def pdf_presupuesto(id):
          Paragraph('<b>Tipo de Trabajo:</b>', lbl), Paragraph(p.tipo_trabajo or '', val),
          Paragraph('', lbl), Paragraph('', val)],
     ]
-    equipo_table = Table(equipo_data, colWidths=[3*cm, 3*cm, 2*cm, 3*cm, 2*cm, 4*cm])
+    equipo_table = Table(equipo_data, colWidths=[3*cm, 3*cm, 3*cm, 3*cm, 3*cm, 3*cm])
     equipo_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, border_color),
         ('BACKGROUND', (0,0), (-1,-1), gray_light),
@@ -563,7 +563,7 @@ def pdf_presupuesto(id):
         ])
 
     # Filas vacías hasta 15
-    for i in range(len(p.items) + 1, 11):
+    for i in range(len(p.items) + 1, 13):
         items_data.append([Paragraph(str(i), cell_style), '', '', '', '', ''])
 
     items_table = Table(items_data, colWidths=[1*cm, 7.5*cm, 2*cm, 2.5*cm, 2*cm, 2*cm])
@@ -586,7 +586,7 @@ def pdf_presupuesto(id):
          Paragraph(f'<b>{fmt_moneda(p.total)}</b>',
                    ParagraphStyle('tv', fontSize=9, textColor=colors.white, alignment=TA_RIGHT))]
     ]
-    total_table = Table(total_data, colWidths=[1*cm, 7.5*cm, 2*cm, 2.5*cm, 1.5*cm, 2.5*cm])
+    total_table = Table(total_data, colWidths=[1*cm, 7.5*cm, 2*cm, 1.5*cm, 2*cm, 3*cm])
     total_table.setStyle(TableStyle([
         ('BACKGROUND', (4,0), (-1,-1), navy),
         ('TOPPADDING', (0,0), (-1,-1), 4),
