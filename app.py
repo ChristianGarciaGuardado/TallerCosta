@@ -587,12 +587,13 @@ def pdf_presupuesto(id):
          Paragraph(f'<b>{fmt_moneda(p.total)}</b>',
                    ParagraphStyle('tv', fontSize=9, textColor=colors.white, alignment=TA_RIGHT))]
     ]
-    total_table = Table(total_data, colWidths=[1*cm, 7.5*cm, 2*cm, 1.5*cm, 2*cm, 3*cm])
+    total_table = Table(total_data, colWidths=[1*cm, 7*cm, 2*cm, 1.5*cm, 3.5*cm, 3*cm])
     total_table.setStyle(TableStyle([
         ('BACKGROUND', (4,0), (-1,-1), navy),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
         ('BOTTOMPADDING', (0,0), (-1,-1), 4),
         ('GRID', (4,0), (-1,-1), 0.5, border_color),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     elements.append(total_table)
     elements.append(Spacer(1, 0.5*cm))
