@@ -587,7 +587,7 @@ def pdf_presupuesto(id):
          Paragraph(f'<b>{fmt_moneda(p.total)}</b>',
                    ParagraphStyle('tv', fontSize=9, textColor=colors.white, alignment=TA_RIGHT))]
     ]
-    total_table = Table(total_data, colWidths=[1*cm, 7*cm, 2*cm, 1.5*cm, 3.5*cm, 3*cm])
+    total_table = Table(total_data, colWidths=[1*cm, 7,5*cm, 1*cm, 1*cm, 3.25*cm, 3.25*cm])
     total_table.setStyle(TableStyle([
         ('BACKGROUND', (4,0), (-1,-1), navy),
         ('TOPPADDING', (0,0), (-1,-1), 6),
@@ -626,7 +626,7 @@ def pdf_presupuesto(id):
         ('LEFTPADDING', (0,0), (-1,-1), 8),
     ]))
     elements.append(cond_table)
-    elements.append(Spacer(1, 1.5*cm))
+    elements.append(Spacer(1, 2.5*cm))
 
     # ── Firmas ────────────────────────────────────────────
     firma_data = [
