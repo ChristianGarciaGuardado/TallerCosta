@@ -425,7 +425,7 @@ def pdf_presupuesto(id):
     print(f"Existe: {os.path.exists(logo_path)}", flush=True)
     header_data = []
     if os.path.exists(logo_path):
-        logo = Image(logo_path, width=4*cm, height=2.5*cm)
+        logo = Image(logo_path)
         servicios = Paragraph(
             "Reparación integral de grúas y autoelevadores<br/>"
             "Sistemas hidráulicos<br/>"
@@ -527,7 +527,7 @@ def pdf_presupuesto(id):
          Paragraph('<b>Tipo de Trabajo:</b>', lbl), Paragraph(p.tipo_trabajo or '', val),
          Paragraph('', lbl), Paragraph('', val)],
     ]
-    equipo_table = Table(equipo_data, colWidths=[3*cm, 3*cm, 3*cm, 3*cm, 3*cm, 3*cm])
+    equipo_table = Table(equipo_data, colWidths=[3*cm, 3*cm, 3*cm, 3*cm, 2*cm, 3*cm])
     equipo_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, border_color),
         ('BACKGROUND', (0,0), (-1,-1), gray_light),
