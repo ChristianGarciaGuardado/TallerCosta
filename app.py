@@ -534,7 +534,7 @@ def pdf_presupuesto(id):
         ('TOPPADDING', (0,0), (-1,-1), 3),
         ('BOTTOMPADDING', (0,0), (-1,-1), 3),
         ('FONTSIZE', (0,0), (-1,-1), 8),
-        ('SPAN',(3,1) (5,1)),
+        ('SPAN',(3,1), (5,1)),
     ]))
     elements.append(equipo_table)
     elements.append(Spacer(1, 0.3*cm))
