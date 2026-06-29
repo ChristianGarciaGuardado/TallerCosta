@@ -307,9 +307,9 @@ def editar_cliente(id):
         return redirect(url_for('clientes'))
     return render_template('cliente_form.html', cliente=c)
 
-# ═══════════════════════════════════════════════════════
-# RUTAS — PRESUPUESTOS (CONSOLIDADO)
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
+# RUTAS — PRESUPUESTOS (CONSOLIDADO Y SEGURO)
+# ═══════════════════════════════════════════════════════════════════════
 
 @app.route('/presupuestos')
 def presupuestos():
@@ -339,20 +339,25 @@ def editar_presupuesto(id):
     """Edición inteligente de presupuestos pendientes o ampliaciones en taller"""
     p = Presupuesto.query.get_or_404(id)
     
-    # Validación comercial de estados
+    # ════════════════════════════════════════════════════════════════════
+    # VALIDADOR INTELIGENTE DE EDICIÓN
+    # ════════════════════════════════════════════════════════════════════
     if p.estado == 'rechazado':
         return "Este presupuesto fue rechazado y no se puede modificar.", 403
         
     if p.estado == 'aceptado':
+        # Buscamos si el trabajo asociado a este presupuesto sigue activo en el taller
         trabajo_asociado = Trabajo.query.filter(
             Trabajo.presupuesto_id == p.id,
             Trabajo.estado.in_(['en_curso', 'finalizado'])
         ).first()
+        
+        # Validamos el resultado para que VS Code use la variable y no quede opaca
         if not trabajo_asociado:
-            return "No se puede editar este presupuesto porque el trabajo finalizó, fue entregado o anulado.", 403
+            return "No se puede editar este presupuesto porque el trabajo ya finalizó, fue entregado o anulado.", 403
+    # ════════════════════════════════════════════════════════════════════
 
     clientes = Cliente.query.order_by(Cliente.empresa).all()
-    # Mock data si tus selectores usan listas estáticas, adaptalo si vienen de BD
     tipos_equipo = ['Camión', 'Utilitario', 'Acoplado', 'Máquina Vial']
     tipos_trabajo = ['Mecánica General', 'Electricidad', 'Frenos', 'Motor', 'Service']
     
@@ -370,10 +375,10 @@ def editar_presupuesto(id):
         if p.estado not in ['aceptado']:
             p.estado = request.form.get('estado', 'borrador')
         
-        # Procesamos ítems cuidando la consistencia de nombres del HTML (descripcion, cantidad, precio, descuento)
+        # Procesamos ítems cuidando la consistencia de nombres del HTML
         descripciones = request.form.getlist('descripcion[]')
         cantidades = request.form.getlist('cantidad[]')
-        precios = request.form.getlist('precio[]')  # Sincronizado con el name="precio[]" de tu HTML
+        precios = request.form.getlist('precio[]')  # Sincronizado con name="precio[]"
         descuentos = request.form.getlist('descuento[]')
         
         # Eliminamos ítems viejos para reescribir
@@ -431,364 +436,6 @@ def cambiar_estado_presupuesto(id):
     p.estado = nuevo_estado
     db.session.commit()
     return redirect(url_for('presupuestos'))
-    
-    # ════════════════════════════════════════════════════════════════════
-    # VALIDADOR INTELIGENTE DE EDICIÓN
-    # ════════════════════════════════════════════════════════════════════
-    if p.estado == 'rechazado':
-        return "Este presupuesto fue rechazado y no se puede modificar.", 403
-        
-    if p.estado == 'aceptado':
-        # Buscamos si el trabajo asociado a este presupuesto sigue activo en el taller
-        trabajo_asociado = Trabajo.query.filter(
-            Trabajo.presupuesto_id == p.id,
-            Trabajo.estado.in_(['en_curso', 'finalizado'])
-        ).first()
-        
-        # Si no encontramos un trabajo activo, significa que ya se entregó o anuló
-        if not trabajo_asociado:
-            return "No se puede editar este presupuesto porque el trabajo ya fue entregado o anulado.", 403
-    # ════════════════════════════════════════════════════════════════════
-
-    clientes = Cliente.query.order_by(Cliente.empresa).all()
-    
-    if request.method == 'POST':
-        # Al guardar, modificamos EL MISMO presupuesto (p), manteniendo su ID original (#3)
-        p.cliente_id = int(request.form.get('cliente_id'))
-        p.marca = request.form.get('marca')
-        p.modelo = request.form.get('modelo')
-        p.identificador = request.form.get('identificador')
-        p.tipo_trabajo = request.form.get('tipo_trabajo')
-        
-        # Procesamos los items (repuestos/mano de obra) tal cual lo hace tu sistema actual
-        descripciones = request.form.getlist('descripcion[]')
-        cantidades = request.form.getlist('cantidad[]')
-        precios = request.form.getlist('precio_unitario[]')
-        
-        # Limpiamos los items anteriores para sobreescribirlos
-        for item in p.items:
-            db.session.delete(item)
-            
-        total_general = 0
-        for i in range(len(descripciones)):
-            if descripciones[i].strip():
-                cant = float(cantidades[i]) if cantidades[i] else 1.0
-                precio = float(precios[i]) if precios[i] else 0.0
-                subtotal = cant * precio
-                total_general += subtotal
-                
-                nuevo_item = ItemPresupuesto(
-                    presupuesto_id=p.id,
-                    descripcion=descripciones[i],
-                    cantidad=cant,
-                    precio_unitario=precio,
-                    subtotal=subtotal
-                )
-                db.session.add(nuevo_item)
-        
-        p.total = total_general
-        
-        # ════════════════════════════════════════════════════════════════════
-        # AJUSTE AUTOMÁTICO DEL TRABAJO ACTIVO
-        # ════════════════════════════════════════════════════════════════════
-        # Si el presupuesto ya estaba aceptado, buscamos su trabajo en el taller
-        # y le actualizamos el campo 'presupuestado' con el nuevo valor real.
-        if p.estado == 'aceptado':
-            trabajo_taller = Trabajo.query.filter_by(presupuesto_id=p.id).first()
-            if trabajo_taller:
-                trabajo_taller.presupuestado = total_general
-                # Actualizamos también los datos del vehículo por si se corrigieron en el presupuesto
-                trabajo_taller.marca = p.marca
-                trabajo_taller.modelo = p.modelo
-                trabajo_taller.identificador = p.identificador
-                trabajo_taller.tipo_trabajo = p.tipo_trabajo
-        # ════════════════════════════════════════════════════════════════════
-        
-        db.session.commit()
-        return redirect(url_for('inicio'))
-        
-    return render_template('editar_presupuesto.html', presupuesto=p, clientes=clientes)
-
-@app.route('/presupuestos/<int:id>/estado', methods=['POST'])
-def cambiar_estado_presupuesto(id):
-    p = Presupuesto.query.get_or_404(id)
-    p.estado = request.form['estado']
-    db.session.commit()
-    return redirect(url_for('presupuestos'))
-
-@app.route('/presupuestos/<int:id>/convertir', methods=['GET', 'POST'])
-def convertir_presupuesto(id):
-    p = Presupuesto.query.get_or_404(id)
-    if request.method == 'POST':
-        t = Trabajo(
-            numero=gen_numero_trabajo(),
-            cliente_id=p.cliente_id,
-            presupuesto_id=p.id,
-            tipo_equipo=p.tipo_equipo,
-            identificador=p.identificador,
-            marca=p.marca,
-            modelo=p.modelo,
-            tipo_trabajo=p.tipo_trabajo,
-            observaciones=request.form.get('observaciones', p.observaciones),
-            presupuestado=p.total,
-            fecha_ingreso=datetime.strptime(request.form['fecha_ingreso'], '%Y-%m-%d').date()
-        )
-        db.session.add(t)
-        p.estado = 'aceptado'
-        db.session.commit()
-        return redirect(url_for('detalle_trabajo', id=t.id))
-    return render_template('convertir.html', presupuesto=p)
-
-@app.route('/presupuestos/<int:id>/pdf')
-def pdf_presupuesto(id):
-    """Genera y descarga el PDF del presupuesto"""
-    p = Presupuesto.query.get_or_404(id)
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=1.2*cm, leftMargin=1.2*cm,
-                            topMargin=1*cm, bottomMargin=1.5*cm)
-    elements = []
-    styles = getSampleStyleSheet()
-
-    # ── Colores ──────────────────────────────────────────
-    navy = colors.HexColor('#1F3864')
-    gray_light = colors.HexColor('#F2F2F2')
-    border_color = colors.HexColor('#CCCCCC')
-
-    # ── Header: Logo + datos taller ───────────────────────
-    logo_path = os.path.join(app.root_path, 'static', 'Logo.png')
-    print(f"Buscando logo en: {logo_path}", flush=True)
-    print(f"Existe: {os.path.exists(logo_path)}", flush=True)
-    header_data = []
-    if os.path.exists(logo_path):
-        logo = Image(logo_path, width=6.5*cm, height=2.5*cm)
-        servicios = Paragraph(
-            "Reparación integral de grúas y autoelevadores<br/>"
-            "Sistemas hidráulicos<br/>"
-            "Motores industriales<br/>"
-            "Transmisiones automáticas",
-            ParagraphStyle('serv', fontSize=8, leading=12, textColor=colors.black)
-        )
-        header_data = [[logo, servicios]]
-    else:
-        header_data = [[
-            Paragraph("<b>COSTA MECÁNICA INTEGRAL</b>",
-                      ParagraphStyle('t', fontSize=14, textColor=navy)),
-            Paragraph("Reparación integral de maquinaria pesada",
-                      ParagraphStyle('s', fontSize=9))
-        ]]
-
-    header_table = Table(header_data, colWidths=[7*cm, 10*cm])
-    header_table.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('LEFTPADDING', (0,0), (-1,-1), 0),
-    ]))
-    elements.append(header_table)
-
-    # ── Línea + dirección + número ─────────────────────────
-    elements.append(Spacer(1, 0.3*cm))
-    dir_pres_data = [[
-        Paragraph("<b>📍 Carlos F. Melo 488, CABA</b><br/><b>📞 1173662508 / 1161415101</b>",
-                  ParagraphStyle('dir', fontSize=8, textColor=colors.black)),
-        Paragraph("<b>PRESUPUESTO</b>",
-                  ParagraphStyle('ptitle', fontSize=14, textColor=navy, alignment=TA_CENTER)),
-        Paragraph(f"<b>N° {p.numero.replace('PRES-','')}</b>",
-                  ParagraphStyle('pnum', fontSize=14, textColor=colors.white,
-                                 backColor=navy, alignment=TA_CENTER))
-    ]]
-    dir_table = Table(dir_pres_data, colWidths=[7*cm, 5*cm, 5*cm])
-    dir_table.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('BACKGROUND', (2,0), (2,0), navy),
-        ('LEFTPADDING', (2,0), (2,0), 6),
-        ('RIGHTPADDING', (2,0), (2,0), 6),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-    ]))
-    elements.append(dir_table)
-    elements.append(Spacer(1, 0.5*cm))
-
-    # ── Información del cliente y presupuesto ─────────────
-    valido_hasta = p.creado.date() + timedelta(days=15)
-    info_title = Table([
-        [Paragraph("<b>INFORMACIÓN DEL CLIENTE Y PRESUPUESTO</b>",
-                   ParagraphStyle('it', fontSize=9, textColor=colors.white, alignment=TA_CENTER))]
-    ], colWidths=[17*cm])
-    info_title.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), navy),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-    ]))
-    elements.append(info_title)
-
-    lbl = ParagraphStyle('lbl', fontSize=8, textColor=colors.black)
-    val = ParagraphStyle('val', fontSize=8)
-
-    info_data = [
-        [Paragraph('<b>N° Presupuesto:</b>', lbl), Paragraph(str(p.id), val),
-         Paragraph('<b>Fecha:</b>', lbl), Paragraph(p.creado.strftime('%d/%m/%Y'), val),
-         Paragraph('<b>Empresa:</b>', lbl), Paragraph(p.cliente.empresa or '', val)],
-        [Paragraph('<b>N° Reparación:</b>', lbl), Paragraph('', val),
-         Paragraph('<b>Válido hasta:</b>', lbl), Paragraph(valido_hasta.strftime('%d/%m/%Y'), val),
-         Paragraph('<b>Telefono:</b>', lbl), Paragraph(p.cliente.telefono or '', val)],
-    ]
-    info_table = Table(info_data, colWidths=[3*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 4*cm])
-    info_table.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, border_color),
-        ('BACKGROUND', (0,0), (-1,-1), gray_light),
-        ('TOPPADDING', (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
-        ('FONTSIZE', (0,0), (-1,-1), 8),
-    ]))
-    elements.append(info_table)
-    elements.append(Spacer(1, 0.3*cm))
-
-    # ── Datos del equipo ──────────────────────────────────
-    equipo_title = Table([
-        [Paragraph("<b>DATOS DEL EQUIPO / MÁQUINA</b>",
-                   ParagraphStyle('et', fontSize=9, textColor=colors.white, alignment=TA_CENTER))]
-    ], colWidths=[17*cm])
-    equipo_title.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), navy),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-    ]))
-    elements.append(equipo_title)
-
-    equipo_data = [
-        [Paragraph('<b>Tipo de Equipo:</b>', lbl), Paragraph(p.tipo_equipo or '', val),
-         Paragraph('<b>Marca:</b>', lbl), Paragraph(p.marca or '', val),
-         Paragraph('<b>Modelo:</b>', lbl), Paragraph(p.modelo or '', val)],
-        [Paragraph('<b>N° Serie / Interno:</b>', lbl), Paragraph(p.identificador or '', val),
-         Paragraph('<b>Tipo de Trabajo:</b>', lbl), Paragraph(p.tipo_trabajo or '', val),
-         Paragraph('', lbl), Paragraph('', val)],
-    ]
-    equipo_table = Table(equipo_data, colWidths=[3*cm, 3*cm, 3*cm, 3*cm, 2*cm, 3*cm])
-    equipo_table.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, border_color),
-        ('BACKGROUND', (0,0), (-1,-1), gray_light),
-        ('TOPPADDING', (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
-        ('FONTSIZE', (0,0), (-1,-1), 8),
-        ('SPAN',(3,1), (5,1)),
-    ]))
-    elements.append(equipo_table)
-    elements.append(Spacer(1, 0.3*cm))
-
-    # ── Tabla de ítems ────────────────────────────────────
-    hdr_style = ParagraphStyle('hdr', fontSize=8, textColor=colors.white, alignment=TA_CENTER)
-    items_header = [
-        Paragraph('<b>#</b>', hdr_style),
-        Paragraph('<b>Descripción del Trabajo / Repuesto</b>', hdr_style),
-        Paragraph('<b>Cantidad</b>', hdr_style),
-        Paragraph('<b>P. Unit. ($)</b>', hdr_style),
-        Paragraph('<b>Desc. (%)</b>', hdr_style),
-        Paragraph('<b>Subtotal ($)</b>', hdr_style),
-    ]
-    items_data = [items_header]
-    cell_style = ParagraphStyle('cell', fontSize=8)
-    cell_right = ParagraphStyle('cellr', fontSize=8, alignment=TA_RIGHT)
-
-    for i, item in enumerate(p.items, 1):
-        items_data.append([
-            Paragraph(str(i), cell_style),
-            Paragraph(item.descripcion, cell_style),
-            Paragraph(fmt_numero(item.cantidad), cell_right),
-            Paragraph(fmt_moneda(item.precio_unitario), cell_right),
-            Paragraph(f"{item.descuento:.0f}%" if item.descuento else '', cell_right),
-            Paragraph(fmt_moneda(item.subtotal), cell_right),
-        ])
-
-    # Filas vacías hasta 15
-    for i in range(len(p.items) + 1, 13):
-        items_data.append([Paragraph(str(i), cell_style), '', '', '', '', ''])
-
-    items_table = Table(items_data, colWidths=[1*cm, 7.5*cm, 2*cm, 2.5*cm, 2*cm, 2*cm])
-    items_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), navy),
-        ('GRID', (0,0), (-1,-1), 0.5, border_color),
-        ('FONTSIZE', (0,0), (-1,-1), 8),
-        ('TOPPADDING', (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, gray_light]),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('ALIGN', (1,1), (1,-1), 'LEFT'),
-    ]))
-    elements.append(items_table)
-
-    # ── Total final ───────────────────────────────────────
-    total_data = [
-        ['', '', '', '', Paragraph('<b>TOTAL FINAL:</b>',
-                                    ParagraphStyle('tf', fontSize=9, textColor=colors.white, alignment=TA_RIGHT)),
-         Paragraph(f'<b>{fmt_moneda(p.total)}</b>',
-                   ParagraphStyle('tv', fontSize=9, textColor=colors.white, alignment=TA_RIGHT))]
-    ]
-    total_table = Table(total_data, colWidths=[1*cm, 7.5*cm, 1*cm, 1*cm, 3.25*cm, 3.25*cm])
-    total_table.setStyle(TableStyle([
-        ('BACKGROUND', (4,0), (-1,-1), navy),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-        ('GRID', (4,0), (-1,-1), 0.5, border_color),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-    ]))
-    elements.append(total_table)
-    elements.append(Spacer(1, 0.5*cm))
-
-    # ── Condiciones ───────────────────────────────────────
-    cond_title = Table([
-        [Paragraph("<b>CONDICIONES Y NOTAS</b>",
-                   ParagraphStyle('ct', fontSize=9, textColor=colors.white, alignment=TA_CENTER))]
-    ], colWidths=[17*cm])
-    cond_title.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), navy),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-    ]))
-    elements.append(cond_title)
-
-    condiciones = p.observaciones or (
-        "• El presupuesto tiene validez de 15 días desde la fecha de emisión.\n"
-        "• Los repuestos no incluidos en este presupuesto serán cotizados por separado.\n"
-        "• El tiempo estimado de entrega se acordará al confirmar el trabajo."
-    )
-    cond_table = Table([
-        [Paragraph(condiciones.replace('\n', '<br/>'),
-                   ParagraphStyle('cond', fontSize=8, leading=12))]
-    ], colWidths=[17*cm])
-    cond_table.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, border_color),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-        ('LEFTPADDING', (0,0), (-1,-1), 8),
-    ]))
-    elements.append(cond_table)
-    elements.append(Spacer(1, 2.5*cm))
-
-    # ── Firmas ────────────────────────────────────────────
-    firma_data = [
-        ['_' * 30, '', '_' * 30],
-        [Paragraph('Firma taller', ParagraphStyle('f', fontSize=8, alignment=TA_CENTER)),
-         '',
-         Paragraph('Firma cliente', ParagraphStyle('f', fontSize=8, alignment=TA_CENTER))],
-    ]
-    firma_table = Table(firma_data, colWidths=[6*cm, 5*cm, 6*cm])
-    firma_table.setStyle(TableStyle([
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('TOPPADDING', (0,0), (-1,-1), 2),
-    ]))
-    elements.append(firma_table)
-
-    doc.build(elements)
-    buffer.seek(0)
-    return send_file(buffer, as_attachment=True,
-                     download_name=f'Presupuesto_{p.numero}.pdf',
-                     mimetype='application/pdf')
-
-def fmt_numero(n):
-    """Formatea cantidad: sin decimales si es entero"""
-    if n == int(n):
-        return str(int(n))
-    return f"{n:.2f}"
 
 # ═══════════════════════════════════════════════════════
 # RUTAS — TRABAJOS
