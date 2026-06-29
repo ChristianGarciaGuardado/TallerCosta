@@ -333,6 +333,65 @@ def presupuestos():
                            estado=estado_filtro, 
                            ids_activos=ids_presupuestos_activos)
 
+@app.route('/presupuestos/nuevo', methods=['GET', 'POST'])
+def nuevo_presupuesto():
+    """Generación de un nuevo presupuesto desde cero con su número correlativo automático"""
+    clientes = Cliente.query.order_by(Cliente.empresa).all()
+    tipos_equipo = get_opciones('tipo_equipo')
+    tipos_trabajo = get_opciones('tipo_trabajo')
+    
+    if request.method == 'POST':
+        # 1. Creamos la cabecera del presupuesto con su número secuencial único
+        p = Presupuesto(
+            numero=gen_numero_presupuesto(),
+            cliente_id=int(request.form.get('cliente_id')),
+            tipo_equipo=request.form.get('tipo_equipo'),
+            marca=request.form.get('marca'),
+            modelo=request.form.get('modelo'),
+            identificador=request.form.get('identificador'),
+            tipo_trabajo=request.form.get('tipo_trabajo'),
+            observaciones=request.form.get('observaciones'),
+            estado=request.form.get('estado', 'borrador')
+        )
+        db.session.add(p)
+        db.session.flush() # Mantiene el presupuesto en memoria y nos da su ID temporal para los ítems
+        
+        # 2. Procesamos el listado dinámico de repuestos o mano de obra enviados desde el formulario
+        descripciones = request.form.getlist('descripcion[]')
+        cantidades = request.form.getlist('cantidad[]')
+        precios = request.form.getlist('precio[]')
+        descuentos = request.form.getlist('descuento[]')
+        
+        total_general = 0
+        for i in range(len(descripciones)):
+            if descripciones[i].strip():
+                cant = float(cantidades[i]) if (i < len(cantidades) and cantidades[i]) else 1.0
+                precio = float(precios[i]) if (i < len(precios) and precios[i]) else 0.0
+                desc = float(descuentos[i]) if (i < len(descuentos) and descuentos[i]) else 0.0
+                
+                subtotal = cant * precio * (1 - desc / 100)
+                total_general += subtotal
+                
+                nuevo_item = ItemPresupuesto(
+                    presupuesto_id=p.id,
+                    descripcion=descripciones[i],
+                    amount=cant, # Mapeado al campo cantidad
+                    cantidad=cant,
+                    precio_unitario=precio,
+                    descuento=desc,
+                    subtotal=subtotal
+                )
+                db.session.add(nuevo_item)
+        
+        p.total = total_general
+        db.session.commit()
+        return redirect(url_for('presupuestos'))
+        
+    return render_template('presupuesto_form.html', 
+                           presupuesto=None, 
+                           clientes=clientes, 
+                           tipos_equipo=tipos_equipo, 
+                           tipos_trabajo=tipos_trabajo)
 
 @app.route('/presupuestos/<int:id>/editar', methods=['GET', 'POST'])
 def editar_presupuesto(id):
@@ -358,8 +417,8 @@ def editar_presupuesto(id):
     # ════════════════════════════════════════════════════════════════════
 
     clientes = Cliente.query.order_by(Cliente.empresa).all()
-    tipos_equipo = ['Camión', 'Utilitario', 'Acoplado', 'Máquina Vial']
-    tipos_trabajo = ['Mecánica General', 'Electricidad', 'Frenos', 'Motor', 'Service']
+    tipos_equipo = get_opciones('tipo_equipo')
+    tipos_trabajo = get_opciones('tipo_trabajo')
     
     if request.method == 'POST':
         p.cliente_id = int(request.form.get('cliente_id'))
