@@ -64,31 +64,34 @@
 {% if trabajos %}
     {% for t in trabajos %}
     <a href="/trabajos/{{ t.id }}" class="work-row">
+    
+    <div class="linea-superior">
         {% if t.estado == 'en_curso' %}
             <span class="badge badge-amber">En curso</span>
         {% elif t.estado == 'finalizado' %}
             <span class="badge badge-red">Finalizado sin entregar</span>
         {% endif %}
 
-        <div class="work-info">
-            <div class="work-name">{{ t.cliente.empresa }} — {{ t.marca }} {{ t.modelo }}</div>
-            <div class="work-sub">
-                {{ t.numero }} &bull; {{ t.tipo_trabajo }} &bull; {{ t.identificador }}
-                &bull; Ingresó {{ t.fecha_ingreso.strftime('%d/%m/%Y') }}
-            </div>
+        <div class="work-name">{{ t.cliente.empresa }} — {{ t.marca }} {{ t.modelo }}</div>
+    </div>
+    <div class="work-info">
+        <div class="work-sub">
+            {{ t.numero }} &bull; {{ t.tipo_trabajo }} &bull; {{ t.identificador }}
+            &bull; Ingresó {{ t.fecha_ingreso.strftime('%d/%m/%Y') }}
         </div>
+    </div>
 
-        <div class="work-amounts">
-            <div class="work-total">{{ t.presupuestado | moneda }}</div>
-            {% if t.saldo > 0 %}
-                <div class="work-saldo" style="color:var(--red)">Saldo {{ t.saldo | moneda }}</div>
-            {% else %}
-                <div class="work-saldo" style="color:var(--green)">Cobrado</div>
-            {% endif %}
-        </div>
+    <div class="work-amounts">
+        <div class="work-total">{{ t.presupuestado | moneda }}</div>
+        {% if t.saldo > 0 %}
+            <div class="work-saldo" style="color:var(--red)">Saldo {{ t.saldo | moneda }}</div>
+        {% else %}
+            <div class="work-saldo" style="color:var(--green)">Cobrado</div>
+        {% endif %}
+    </div>
 
-        <i class="ti ti-chevron-right" style="color:var(--gray-300)"></i>
-    </a>
+    <i class="ti ti-chevron-right" style="color:var(--gray-300)"></i>
+</a>
     {% endfor %}
 {% else %}
     <div class="empty-state">
