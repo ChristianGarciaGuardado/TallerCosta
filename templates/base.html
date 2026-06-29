@@ -319,43 +319,64 @@
             th, td { padding: 6px 8px; }
 
             /* ═══════════════════════════════════════════════════════
-               OPTIMIZACIÓN ÚNICA PARA FILAS (PRESUPUESTOS E INICIO)
+               OPTIMIZACIÓN CALIBRADA DE FILAS (INICIO Y TRABAJOS)
                ═══════════════════════════════════════════════════════ */
             .work-row, a.work-row { 
-                display: flex !important; /* <── Forzamos a que tanto DIVs como enlaces se comporten igual */
+                display: flex !important;
                 flex-direction: column !important; 
                 align-items: stretch !important; 
                 gap: 6px !important; 
-                padding: 10px 12px !important; 
-                text-decoration: none !important; /* Le quita cualquier subrayado azul feo de los links */
-                color: inherit !important; /* Mantiene los colores originales de tu texto */
+                padding: 12px 35px 12px 12px !important; /* Espacio extra a la derecha para que no pise la flecha */
+                text-decoration: none !important; 
+                color: inherit !important;
+                position: relative !important; /* Necesario para clavar la flechita a la derecha */
             }
 
-            /* LINEA 1: El badge y los datos del cliente conviven horizontalmente */
-            .work-row .badge {
-                align-self: flex-start !important;
-                margin-bottom: 2px !important;
-                display: inline-block !important;
-            }
+            /* LINEA 1: Forzamos a que el Badge y Ramón compartan el mismo renglón horizontal */
             .work-row .work-info {
                 width: 100% !important;
                 display: flex !important;
                 flex-direction: column !important;
-                gap: 4px !important;
-            }
-            .work-row .work-name {
-                font-size: 14px !important;
-                margin-top: 2px !important;
+                gap: 6px !important;
             }
 
-            /* LINEA 2: Detalles en gris ocupan su propio renglón sin cortarse */
+            /* Creamos un comportamiento horizontal para los primeros elementos */
+            .work-row .badge {
+                display: inline-flex !important;
+                align-items: center !important;
+                margin-bottom: 0 !important;
+                margin-right: 10px !important; /* Separación con el nombre */
+            }
+
+            /* Modificamos el contenedor del cliente para que suba al lado del badge si tu HTML los tiene juntos, 
+               o forzamos a que el texto de Ramón se alinee de forma fluida */
+            .work-row .work-name {
+                font-size: 14px !important;
+                display: inline-block !important;
+                margin: 0 !important;
+                vertical-align: middle !important;
+            }
+
+            /* Si en tu HTML el badge y el nombre están sueltos, esto los obliga a agruparse en la primera línea */
+            .work-row > *:first-child, 
+            .work-row .work-info > *:first-child {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+            }
+
+            /* LINEA 2: Detalles en gris (REP-0008...) */
             .work-row .work-sub {
                 font-size: 11px !important;
                 color: var(--text-light, #718096) !important;
                 white-space: normal !important;
+                display: block !important;
+                width: 100% !important;
             }
 
-            /* LINEA 3 (Para el Inicio): Total y Saldo pegados en la misma línea */
+            /* LINEA 3: Importe y Saldo (Ya se veían perfectos, los mantenemos igual) */
             .work-row .work-amounts {
                 display: flex !important;
                 flex-direction: row !important; 
@@ -363,7 +384,8 @@
                 gap: 20px !important; 
                 margin-top: 4px !important;
                 border-top: 1px dashed rgba(0,0,0,0.05); 
-                padding-top: 4px !important;
+                padding-top: 6px !important;
+                width: 100% !important;
             }
             .work-row .work-total, 
             .work-row .work-amounts div {
@@ -371,7 +393,22 @@
                 font-weight: 600 !important;
             }
 
-            /* LINEA 4 (Para la lista de Presupuestos): Contenedor de botones abajo */
+            /* 🎯 LA FLECHITA: La sacamos del flujo y la clavamos a la derecha al medio */
+            .work-row i.ti-chevron-right, 
+            .work-row .ti-chevron-right,
+            .work-row > svg,
+            .work-row > span:last-child:not(.badge) { 
+                position: absolute !important;
+                right: 12px !important;
+                top: 50% !important;
+                transform: translateY(-50%) !important; /* La centra verticalmente perfecta */
+                font-size: 16px !important;
+                color: #a0aec0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* LINEA PARA BOTONES (Lista de Presupuestos) */
             .work-row div[style*="display:flex"] {
                 width: 100% !important;
                 justify-content: flex-start !important;
