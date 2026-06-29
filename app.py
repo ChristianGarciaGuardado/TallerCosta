@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, send_file
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -11,6 +11,8 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 import os
 import io
+def hora_argentina():
+    return datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=3)
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 
@@ -40,7 +42,7 @@ class Cliente(db.Model):
     direccion = db.Column(db.String(200))
     cuit = db.Column(db.String(20))
     notas = db.Column(db.Text)
-    creado = db.Column(db.DateTime, default=datetime.utcnow)
+    creado = db.Column(db.DateTime, default=hora_argentina)
     presupuestos = db.relationship('Presupuesto', backref='cliente', lazy=True)
     trabajos = db.relationship('Trabajo', backref='cliente', lazy=True)
 
@@ -57,7 +59,7 @@ class Presupuesto(db.Model):
     observaciones = db.Column(db.Text)
     estado = db.Column(db.String(20), default='borrador')  # borrador, enviado, aceptado, rechazado
     total = db.Column(db.Float, default=0)
-    creado = db.Column(db.DateTime, default=datetime.utcnow)
+    creado = db.Column(db.DateTime, default=hora_argentina)
     items = db.relationship('ItemPresupuesto', backref='presupuesto', lazy=True, cascade='all, delete-orphan')
     trabajo = db.relationship('Trabajo', backref='presupuesto', lazy=True, uselist=False)
 
@@ -87,7 +89,7 @@ class Trabajo(db.Model):
     presupuestado = db.Column(db.Float, default=0)
     fecha_ingreso = db.Column(db.Date, default=date.today)
     fecha_entrega = db.Column(db.Date, nullable=True)
-    creado = db.Column(db.DateTime, default=datetime.utcnow)
+    creado = db.Column(db.DateTime, default=hora_argentina)
     gastos = db.relationship('GastoTrabajo', backref='trabajo', lazy=True, cascade='all, delete-orphan')
     cobros = db.relationship('Cobro', backref='trabajo', lazy=True, cascade='all, delete-orphan')
 
@@ -241,10 +243,10 @@ def inicio():
     # KPI 2: Suma de dinero potencial de lo que está pendiente en la calle
     total_dinero_pendientes = sum(p.total for p in presupuestos_pendientes_list)
 
-    # KPI 3: Ventas del período (Suma directa del campo 'presupuestado' de los trabajos creados en el rango, sin anulados)
+    # KPI 3: Ventas del período (Corregido para incluir los trabajos del mismo día)
     trabajos_del_periodo = Trabajo.query.filter(
-        Trabajo.creado >= fecha_desde,
-        Trabajo.creado <= fecha_hasta,
+        db.func.date(Trabajo.creado) >= fecha_desde,
+        db.func.date(Trabajo.creado) <= fecha_hasta,
         Trabajo.estado != 'anulado'
     ).all()
     ventas_del_periodo = sum(t.presupuestado for t in trabajos_del_periodo)
