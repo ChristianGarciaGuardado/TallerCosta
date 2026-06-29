@@ -251,10 +251,10 @@ def inicio():
     ).all()
     ventas_del_periodo = sum(t.presupuestado for t in trabajos_del_periodo)
 
-    # KPI NUEVO: Gastos del período (Gastos Generales + Gastos de Reparación)
-    gastos_generales_del_periodo = Gasto.query.filter(
-        db.func.date(Gasto.fecha) >= fecha_desde,
-        db.func.date(Gasto.fecha) <= fecha_hasta
+    # KPI NUEVO: Gastos del período (Corregido con los nombres reales de tus modelos)
+    gastos_generales_del_periodo = GastoGeneral.query.filter(
+        db.func.date(GastoGeneral.fecha) >= fecha_desde,
+        db.func.date(GastoGeneral.fecha) <= fecha_hasta
     ).all()
     total_gastos_generales = sum(g.monto for g in gastos_generales_del_periodo)
 
@@ -277,7 +277,8 @@ def inicio():
                            ventas_este_mes=ventas_del_periodo,
                            total_saldo=total_saldo,
                            fecha_desde=fecha_desde_str,
-                           fecha_hasta=fecha_hasta_str)
+                           fecha_hasta=fecha_hasta_str,
+                           gastos_periodo=gastos_periodo)
 
 # ═══════════════════════════════════════════════════════
 # RUTAS — CLIENTES
