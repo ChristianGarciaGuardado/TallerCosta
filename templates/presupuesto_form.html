@@ -7,7 +7,7 @@
 {% block content %}
 
 <div style="max-width:750px">
-<form method="post" id="form-pres">
+<form method="post" id="form-pres" action="{% if presupuesto %}/presupuestos/{{ presupuesto.id }}/editar{% else %}/presupuestos{% endif %}">
 
     <div class="card">
         <div class="card-title">Cliente y máquina</div>
