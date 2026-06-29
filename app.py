@@ -420,7 +420,7 @@ def editar_presupuesto(id):
         db.session.commit()
         return redirect(url_for('presupuestos'))
         
-    return render_template('presupuestos_form.html', 
+    return render_template('presupuesto_form.html', 
                            presupuesto=p, 
                            clientes=clientes, 
                            tipos_equipo=tipos_equipo, 
