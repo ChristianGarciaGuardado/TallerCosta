@@ -3,7 +3,6 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Costa Taller Mecánico{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
@@ -181,7 +180,6 @@
         .badge-purple { background: #EEEDFE; color: #3C3489; }
 
         /* KPIs */
-        /* .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }*/
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
         .kpi { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
         .kpi-label { font-size: 11px; color: var(--text-light); margin-bottom: 6px; }
@@ -191,7 +189,9 @@
         .kpi-value.amber { color: #854F0B; }
         .kpi-value.blue { color: var(--blue); }
 
-        /* FILAS */
+        /* ═══════════════════════════════════════════════════════
+           DISEÑO BASE DE FILAS: OPTIMIZADO ORIGINAL PARA PC
+           ═══════════════════════════════════════════════════════ */
         .work-row {
             display: flex;
             align-items: center;
@@ -207,12 +207,26 @@
             transition: border-color 0.15s;
         }
         .work-row:hover { border-color: var(--blue); }
+        
+        /* Caja invisible nueva: En PC se comporta normal (apilado vertical) */
+        .work-row .linea-superior {
+            display: block;
+        }
+        .work-row .linea-superior .badge {
+            margin-bottom: 4px;
+        }
+
         .work-info { flex: 1; min-width: 0; }
         .work-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .work-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
         .work-amounts { text-align: right; flex-shrink: 0; }
         .work-total { font-size: 13px; font-weight: 600; color: var(--text); }
         .work-saldo { font-size: 11px; margin-top: 2px; }
+        
+        /* Flecha en PC (mantiene el flujo normal al final de la fila) */
+        .work-row i.ti-chevron-right {
+            font-size: 16px;
+        }
 
         /* FORMULARIOS */
         .form-grid { display: grid; gap: 12px; }
@@ -288,24 +302,21 @@
 
         /* RESPONSIVE MÓVIL (Con Menú Desplegable) */
         @media (max-width: 768px) {
-            /* Mostramos el botón de tres rayitas en la barra superior */
             #menu-toggle { display: block !important; }
 
-            /* El menú ahora arranca OCULTO por defecto en el celular */
             .sidebar { 
                 width: 100%; 
                 min-height: auto; 
-                position: absolute; /* Para que flote sobre el contenido y no empuje nada */
-                top: 60px;          /* Ajustalo según la altura de tu topbar */
+                position: absolute; 
+                top: 60px;          
                 left: 0;
                 flex-direction: column; 
-                display: none;      /* Oculto */
-                z-index: 999;       /* Pasa por encima de todo */
-                background: var(--sidebar-bg, #1A202C); /* Forzamos fondo para que no sea transparente */
+                display: none;      
+                z-index: 999;       
+                background: var(--sidebar-bg, #1A202C); 
                 border-bottom: 1px solid var(--border-color);
             }
 
-            /* Cuando tocamos el botón, JS le agrega esta clase y el menú se MUESTRA */
             .sidebar.active {
                 display: flex !important;
             }
@@ -319,20 +330,18 @@
             th, td { padding: 6px 8px; }
 
             /* ═══════════════════════════════════════════════════════
-               OPTIMIZACIÓN FINAL PARA TARJETAS (CON LINEA SUPERIOR)
+               COMPORTAMIENTO EXCLUSIVO PARA MÓVIL
                ═══════════════════════════════════════════════════════ */
             .work-row, a.work-row { 
                 display: flex !important;
                 flex-direction: column !important; 
                 align-items: stretch !important; 
-                gap: 8px !important; 
+                gap: 6px !important; 
                 padding: 12px 35px 12px 12px !important; 
-                text-decoration: none !important; 
-                color: inherit !important;
                 position: relative !important; 
             }
 
-            /* Nueva Línea Superior: junta el badge y el nombre en horizontal de forma nativa */
+            /* Forzamos a que el badge y Ramón se queden juntos horizontalmente */
             .work-row .linea-superior {
                 display: flex !important;
                 flex-direction: row !important; 
@@ -367,7 +376,7 @@
                 margin-top: 2px !important;
             }
 
-            /* Importe y Saldo uno al lado del otro */
+            /* Importe y Saldo uno al lado del otro abajo */
             .work-row .work-amounts {
                 display: flex !important;
                 flex-direction: row !important; 
@@ -376,6 +385,7 @@
                 margin-top: 4px !important;
                 border-top: 1px dashed rgba(0,0,0,0.08) !important; 
                 padding-top: 6px !important;
+                text-align: left !important;
             }
 
             .work-row .work-total, 
@@ -384,7 +394,7 @@
                 font-weight: 600 !important;
             }
 
-            /* Botones de acción (para la lista de presupuestos) */
+            /* Botones de acción (para presupuestos en celular) */
             .work-row div[style*="display:flex"] {
                 width: 100% !important;
                 justify-content: flex-start !important;
@@ -405,11 +415,8 @@
                 right: 12px !important;
                 top: 50% !important;
                 transform: translateY(-50%) !important;
-                font-size: 16px !important;
                 margin: 0 !important;
             }
-
-
         }
     </style>
 </head>
@@ -482,11 +489,10 @@
 
         if (menuToggle && sidebar) {
             menuToggle.addEventListener('click', function(e) {
-                e.stopPropagation(); // Evita que el clic se propague
+                e.stopPropagation();
                 sidebar.classList.toggle('active');
             });
 
-            // Truco extra: Si tocan cualquier parte de la pantalla fuera del menú, se cierra solo
             document.addEventListener('click', function(e) {
                 if (!sidebar.contains(e.target) && e.target !== menuToggle) {
                     sidebar.classList.remove('active');
@@ -494,5 +500,5 @@
             });
         }
     });
-    </script>
+</script>
 </html>
