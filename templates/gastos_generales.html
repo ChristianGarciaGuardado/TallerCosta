@@ -78,17 +78,22 @@
                         <td>{{ g.categoria }}</td>
                         <td>{{ g.proveedor or '—' }}</td>
                         <td>{{ g.forma_pago or '—' }}</td>
-                        <td style="text-align:right;font-weight:500;color:var(--red)">
+                        <td style="text-align:right;font-weight:500;
+                                   color:{% if g.anulado %}var(--gray-500){% else %}var(--red){% endif %}">
                             {{ g.monto | moneda }}
                         </td>
                         <td>
+                            {% if not g.anulado %}
                             <form method="post" action="/gastos-generales/{{ g.id }}/anular">
                                 <button type="submit"
                                         style="background:none;border:none;cursor:pointer;color:var(--text-light)"
-                                        onclick="return confirm('¿Anular este gasto?')">
+                                        onclick="return confirm('¿Anular este gasto? Quedará registrado pero no se contabilizará.')">
                                     <i class="ti ti-ban" style="font-size:14px"></i>
                                 </button>
                             </form>
+                            {% else %}
+                            <span style="font-size:11px;color:var(--gray-500)">Anulado</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

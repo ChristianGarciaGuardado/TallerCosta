@@ -11,15 +11,6 @@
         </button>
     </form>
     {% elif trabajo.estado == 'finalizado' %}
-    {% if trabajo.estado != 'anulado' and trabajo.estado != 'entregado' %}
-<form method="post" action="/trabajos/{{ trabajo.id }}/estado">
-    <input type="hidden" name="estado" value="anulado">
-    <button type="submit" class="btn btn-ghost btn-sm"
-            onclick="return confirm('¿Anular este trabajo? Quedará registrado pero inactivo.')">
-        <i class="ti ti-ban"></i> Anular
-    </button>
-</form>
-{% endif %}
     <form method="post" action="/trabajos/{{ trabajo.id }}/estado">
         <input type="hidden" name="estado" value="entregado">
         <button type="submit" class="btn btn-green"
@@ -28,10 +19,29 @@
         </button>
     </form>
     {% endif %}
-    <a href="/trabajos" class="btn btn-ghost"><i class="ti ti-arrow-left"></i> Volver</a>
+
+    {% if trabajo.estado != 'anulado' and trabajo.estado != 'entregado' %}
+    <form method="post" action="/trabajos/{{ trabajo.id }}/estado">
+        <input type="hidden" name="estado" value="anulado">
+        <button type="submit" class="btn btn-ghost btn-sm"
+                onclick="return confirm('¿Anular este trabajo? Quedará registrado pero inactivo.')">
+            <i class="ti ti-ban"></i> Anular
+        </button>
+    </form>
+    {% endif %}
+
+    <a href="/trabajos" class="btn btn-ghost">
+        <i class="ti ti-arrow-left"></i> Volver
+    </a>
 </div>
 {% endblock %}
 {% block content %}
+
+{% if trabajo.estado == 'anulado' %}
+<div class="alert alert-red" style="margin-bottom:16px">
+    <i class="ti ti-ban"></i> Este trabajo está anulado y no se contabiliza en los resultados.
+</div>
+{% endif %}
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
 
@@ -42,32 +52,82 @@
         <div class="mini-row">
             <span class="mini-label">Estado</span>
             <span>
-                {% if trabajo.estado == 'en_curso' %}<span class="badge badge-amber">En curso</span>
-                {% elif trabajo.estado == 'finalizado' %}<span class="badge badge-red">Finalizado</span>
-                {% else %}<span class="badge badge-green">Entregado</span>{% endif %}
+                {% if trabajo.estado == 'en_curso' %}
+                    <span class="badge badge-amber">En curso</span>
+                {% elif trabajo.estado == 'finalizado' %}
+                    <span class="badge badge-red">Finalizado</span>
+                {% elif trabajo.estado == 'anulado' %}
+                    <span class="badge badge-gray">Anulado</span>
+                {% else %}
+                    <span class="badge badge-green">Entregado</span>
+                {% endif %}
             </span>
         </div>
-        <div class="mini-row"><span class="mini-label">Cliente</span><span class="mini-val">{{ trabajo.cliente.empresa }}</span></div>
-        <div class="mini-row"><span class="mini-label">Tipo de equipo</span><span class="mini-val">{{ trabajo.tipo_equipo }}</span></div>
-        <div class="mini-row"><span class="mini-label">Marca / Modelo</span><span class="mini-val">{{ trabajo.marca }} {{ trabajo.modelo }}</span></div>
-        <div class="mini-row"><span class="mini-label">Identificador</span><span class="mini-val">{{ trabajo.identificador }}</span></div>
-        <div class="mini-row"><span class="mini-label">Tipo de trabajo</span><span class="mini-val">{{ trabajo.tipo_trabajo }}</span></div>
-        <div class="mini-row"><span class="mini-label">Fecha ingreso</span><span class="mini-val">{{ trabajo.fecha_ingreso.strftime('%d/%m/%Y') }}</span></div>
-        {% if trabajo.observaciones %}
-        <hr class="divider">
-        <div style="font-size:12px;color:var(--text-light);margin-bottom:4px">Observaciones</div>
-        <div style="font-size:13px">{{ trabajo.observaciones }}</div>
-        {% endif %}
+        <div class="mini-row">
+            <span class="mini-label">Cliente</span>
+            <span class="mini-val">{{ trabajo.cliente.empresa }}</span>
+        </div>
+        <div class="mini-row">
+            <span class="mini-label">Tipo de equipo</span>
+            <span class="mini-val">{{ trabajo.tipo_equipo }}</span>
+        </div>
+        <div class="mini-row">
+            <span class="mini-label">Marca / Modelo</span>
+            <span class="mini-val">{{ trabajo.marca }} {{ trabajo.modelo }}</span>
+        </div>
+        <div class="mini-row">
+            <span class="mini-label">Identificador</span>
+            <span class="mini-val">{{ trabajo.identificador }}</span>
+        </div>
+        <div class="mini-row">
+            <span class="mini-label">Tipo de trabajo</span>
+            <span class="mini-val">{{ trabajo.tipo_trabajo }}</span>
+        </div>
+        <div class="mini-row">
+            <span class="mini-label">Fecha ingreso</span>
+            <span class="mini-val">{{ trabajo.fecha_ingreso.strftime('%d/%m/%Y') }}</span>
+        </div>
+    </div>
+
+    <!-- NOTAS / DETALLE DEL TRABAJO -->
+    <div class="card">
+        <div class="card-title">Detalle del trabajo / Observaciones</div>
+        <form method="post" action="/trabajos/{{ trabajo.id }}/notas">
+            <div class="field">
+                <textarea name="observaciones"
+                          style="width:100%;padding:8px;border:1px solid var(--border);
+                                 border-radius:var(--radius-sm);font-size:13px;
+                                 min-height:120px;resize:vertical;font-family:inherit"
+                          placeholder="Anotá acá qué se hizo, diagnóstico, repuestos usados, etc.">{{ trabajo.observaciones or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-ghost btn-sm" style="margin-top:8px">
+                <i class="ti ti-device-floppy"></i> Guardar notas
+            </button>
+        </form>
     </div>
 
     <div class="card">
         <div class="card-title">Resumen financiero</div>
-        <div class="mini-row"><span class="mini-label">Presupuestado</span><span class="mini-val">{{ trabajo.presupuestado | moneda }}</span></div>
-        <div class="mini-row"><span class="mini-label">Total gastos</span><span class="mini-val" style="color:var(--red)">{{ trabajo.total_gastos | moneda }}</span></div>
-        <div class="mini-row"><span class="mini-label">Total cobrado</span><span class="mini-val" style="color:var(--green)">{{ trabajo.total_cobrado | moneda }}</span></div>
+        <div class="mini-row">
+            <span class="mini-label">Presupuestado</span>
+            <span class="mini-val">{{ trabajo.presupuestado | moneda }}</span>
+        </div>
+        <div class="mini-row">
+            <span class="mini-label">Total gastos</span>
+            <span class="mini-val" style="color:var(--red)">
+                {{ trabajo.total_gastos | moneda }}
+            </span>
+        </div>
+        <div class="mini-row">
+            <span class="mini-label">Total cobrado</span>
+            <span class="mini-val" style="color:var(--green)">
+                {{ trabajo.total_cobrado | moneda }}
+            </span>
+        </div>
         <div class="mini-row">
             <span class="mini-label">Saldo a cobrar</span>
-            <span class="mini-val" style="color:{% if trabajo.saldo > 0 %}var(--red){% else %}var(--green){% endif %}">
+            <span class="mini-val"
+                  style="color:{% if trabajo.saldo > 0 %}var(--red){% else %}var(--green){% endif %}">
                 {{ trabajo.saldo | moneda }}
             </span>
         </div>
@@ -84,12 +144,13 @@
     <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <div class="card-title" style="margin:0">Gastos del trabajo</div>
+            {% if trabajo.estado != 'anulado' %}
             <button onclick="toggleGastoForm()" class="btn btn-ghost btn-sm">
                 <i class="ti ti-plus"></i> Agregar
             </button>
+            {% endif %}
         </div>
 
-        <!-- Formulario agregar gasto -->
         <div id="gasto-form" style="display:none;background:var(--gray-100);
                                      border-radius:var(--radius);padding:14px;margin-bottom:12px">
             <form method="post" action="/trabajos/{{ trabajo.id }}/gasto">
@@ -129,7 +190,8 @@
                 </div>
                 <div style="display:flex;gap:8px">
                     <button type="submit" class="btn btn-primary btn-sm">Guardar gasto</button>
-                    <button type="button" onclick="toggleGastoForm()" class="btn btn-ghost btn-sm">Cancelar</button>
+                    <button type="button" onclick="toggleGastoForm()"
+                            class="btn btn-ghost btn-sm">Cancelar</button>
                 </div>
             </form>
         </div>
@@ -144,8 +206,11 @@
                     </span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px">
-                    <span class="mini-val" style="color:var(--red)">{{ g.monto | moneda }}</span>
-                    <form method="post" action="/trabajos/gasto/{{ g.id }}/eliminar" style="display:inline">
+                    <span class="mini-val" style="color:var(--red)">
+                        {{ g.monto | moneda }}
+                    </span>
+                    <form method="post" action="/trabajos/gasto/{{ g.id }}/eliminar"
+                          style="display:inline">
                         <button type="submit"
                                 style="background:none;border:none;cursor:pointer;color:var(--text-light)"
                                 onclick="return confirm('¿Eliminar gasto?')">
@@ -158,7 +223,9 @@
             <hr class="divider">
             <div class="mini-row">
                 <span style="font-weight:600">Total gastos</span>
-                <span style="font-weight:600;color:var(--red)">{{ trabajo.total_gastos | moneda }}</span>
+                <span style="font-weight:600;color:var(--red)">
+                    {{ trabajo.total_gastos | moneda }}
+                </span>
             </div>
         {% else %}
             <div style="text-align:center;padding:16px;color:var(--text-light);font-size:13px">
@@ -177,11 +244,13 @@
                class="btn btn-ghost btn-sm">Ver cliente completo</a>
         </div>
 
-        <!-- Resumen cuenta -->
-        <div style="background:var(--gray-100);border-radius:var(--radius);padding:12px;margin-bottom:14px">
+        <div style="background:var(--gray-100);border-radius:var(--radius);
+                    padding:12px;margin-bottom:14px">
             <div style="display:flex;justify-content:space-between;margin-bottom:6px">
                 <span style="font-size:12px;color:var(--text-light)">Presupuestado</span>
-                <span style="font-size:13px;font-weight:500">{{ trabajo.presupuestado | moneda }}</span>
+                <span style="font-size:13px;font-weight:500">
+                    {{ trabajo.presupuestado | moneda }}
+                </span>
             </div>
             <div style="display:flex;justify-content:space-between;margin-bottom:6px">
                 <span style="font-size:12px;color:var(--text-light)">Cobrado</span>
@@ -199,7 +268,6 @@
             </div>
         </div>
 
-        <!-- Historial cobros -->
         {% if trabajo.cobros %}
         <div style="margin-bottom:14px">
             <div style="font-size:11px;font-weight:600;color:var(--text-light);
@@ -214,7 +282,9 @@
                         {{ c.forma_pago }} &bull; {{ c.fecha.strftime('%d/%m/%Y') }}
                     </span>
                     {% if c.comprobante %}
-                    <span style="font-size:11px;color:var(--text-light)"> &bull; N° {{ c.comprobante }}</span>
+                    <span style="font-size:11px;color:var(--text-light)">
+                        &bull; N° {{ c.comprobante }}
+                    </span>
                     {% endif %}
                 </div>
                 <form method="post" action="/trabajos/cobro/{{ c.id }}/eliminar">
@@ -229,8 +299,7 @@
         </div>
         {% endif %}
 
-        <!-- Formulario nuevo cobro -->
-        {% if trabajo.saldo > 0 %}
+        {% if trabajo.saldo > 0 and trabajo.estado != 'anulado' %}
         <div style="background:var(--gray-100);border-radius:var(--radius);padding:14px">
             <div style="font-size:12px;font-weight:600;color:var(--text);
                         margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">
@@ -269,7 +338,7 @@
                 </button>
             </form>
         </div>
-        {% else %}
+        {% elif trabajo.estado != 'anulado' %}
         <div class="alert alert-green">
             <i class="ti ti-circle-check"></i> Trabajo cobrado en su totalidad
         </div>

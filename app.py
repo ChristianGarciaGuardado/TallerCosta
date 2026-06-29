@@ -780,8 +780,14 @@ def historial():
     if maquina_q:
         q = q.filter(Trabajo.identificador.ilike(f'%{maquina_q}%'))
     lista = q.order_by(Trabajo.fecha_entrega.desc()).all()
+    clientes = Cliente.query.order_by(Cliente.empresa).all()
+    maquinas = [t[0] for t in db.session.query(Trabajo.identificador)
+            .filter(Trabajo.identificador != None, Trabajo.identificador != '')
+            .distinct().order_by(Trabajo.identificador).all()]
+
     return render_template('historial.html', trabajos=lista,
-                           cliente_q=cliente_q, maquina_q=maquina_q)
+                       cliente_q=cliente_q, maquina_q=maquina_q,
+                       clientes=clientes, maquinas=maquinas)
 
 # ═══════════════════════════════════════════════════════
 # RUTAS — GASTOS GENERALES
@@ -810,6 +816,7 @@ def gastos_generales():
 
 @app.route('/gastos-generales/<int:id>/anular', methods=['POST'])
 def anular_gasto_general(id):
+    """Anula un gasto general — queda registrado pero no se contabiliza"""
     g = GastoGeneral.query.get_or_404(id)
     g.anulado = True
     db.session.commit()
@@ -839,8 +846,9 @@ def resultados():
         db.extract('year', GastoTrabajo.fecha) == anio
     ).all()
     gastos_gen = GastoGeneral.query.filter(
-        db.extract('month', GastoGeneral.fecha) == mes,
-        db.extract('year', GastoGeneral.fecha) == anio
+    db.extract('month', GastoGeneral.fecha) == mes,
+    db.extract('year', GastoGeneral.fecha) == anio,
+    GastoGeneral.anulado == False
     ).all()
     cats = {}
     for g in gastos_trabajos + gastos_gen:

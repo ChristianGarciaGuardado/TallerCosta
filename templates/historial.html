@@ -4,17 +4,33 @@
 {% block content %}
 
 <form method="get" class="filter-bar">
-    <input type="text" name="cliente" value="{{ cliente_q }}" placeholder="Buscar por cliente..." style="flex:1">
-    <input type="text" name="maquina" value="{{ maquina_q }}" placeholder="Identificador de máquina..." style="flex:1">
-    <button type="submit" class="btn btn-ghost"><i class="ti ti-search"></i> Buscar</button>
+    <select name="cliente" style="width:220px">
+        <option value="">Todos los clientes</option>
+        {% for c in clientes %}
+        <option value="{{ c.empresa }}" {% if cliente_q == c.empresa %}selected{% endif %}>
+            {{ c.empresa }}
+        </option>
+        {% endfor %}
+    </select>
+    <select name="maquina" style="width:220px">
+        <option value="">Todas las máquinas</option>
+        {% for m in maquinas %}
+        <option value="{{ m }}" {% if maquina_q == m %}selected{% endif %}>
+            {{ m }}
+        </option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">
+        <i class="ti ti-search"></i> Buscar
+    </button>
     {% if cliente_q or maquina_q %}
-    <a href="/historial" class="btn btn-ghost"><i class="ti ti-x"></i> Limpiar</a>
+    <a href="/historial" class="btn btn-ghost btn-sm">
+        <i class="ti ti-x"></i> Limpiar
+    </a>
     {% endif %}
 </form>
 
-{% if maquina_q and trabajos %}
-<!-- Alerta si la misma máquina tuvo múltiples trabajos -->
-{% if trabajos | length > 1 %}
+{% if maquina_q and trabajos | length > 1 %}
 <div class="alert alert-blue">
     <i class="ti ti-info-circle"></i>
     La máquina <strong>{{ maquina_q }}</strong> tuvo {{ trabajos | length }} trabajos en el taller.
@@ -24,27 +40,45 @@
     {% endif %}
 </div>
 {% endif %}
-{% endif %}
 
 {% if trabajos %}
     {% for t in trabajos %}
-    <a href="/trabajos/{{ t.id }}" class="work-row">
-        {% if t.estado == 'en_curso' %}<span class="badge badge-amber">En curso</span>
-        {% elif t.estado == 'finalizado' %}<span class="badge badge-red">Finalizado</span>
-        {% elif t.estado == 'anulado' %}<span class="badge badge-gray">Anulado</span>
-        {% else %}<span class="badge badge-green">Entregado</span>{% endif %}
+    <a href="/trabajos/{{ t.id }}" class="work-row"
+       style="{% if t.estado == 'anulado' %}opacity:0.5{% endif %}">
+        {% if t.estado == 'en_curso' %}
+            <span class="badge badge-amber">En curso</span>
+        {% elif t.estado == 'finalizado' %}
+            <span class="badge badge-red">Finalizado</span>
+        {% elif t.estado == 'anulado' %}
+            <span class="badge badge-gray">Anulado</span>
+        {% else %}
+            <span class="badge badge-green">Entregado</span>
+        {% endif %}
         <div class="work-info">
-            <div class="work-name">{{ t.cliente.empresa }} — {{ t.marca }} {{ t.modelo }}</div>
+            <div class="work-name">
+                {{ t.cliente.empresa }} — {{ t.marca }} {{ t.modelo }}
+            </div>
             <div class="work-sub">
-                {{ t.numero }} &bull; {{ t.tipo_trabajo }} &bull; {{ t.identificador }}
+                {{ t.numero }} &bull; {{ t.tipo_trabajo }} &bull;
+                {{ t.identificador }}
                 {% if t.fecha_entrega %}
                 &bull; Entregado {{ t.fecha_entrega.strftime('%d/%m/%Y') }}
+                {% else %}
+                &bull; Ingresó {{ t.fecha_ingreso.strftime('%d/%m/%Y') }}
                 {% endif %}
             </div>
         </div>
         <div class="work-amounts">
             <div class="work-total">{{ t.presupuestado | moneda }}</div>
-            <div class="work-saldo" style="color:var(--green)">Cobrado {{ t.total_cobrado | moneda }}</div>
+            {% if t.estado == 'entregado' %}
+            <div class="work-saldo" style="color:var(--green)">
+                Cobrado {{ t.total_cobrado | moneda }}
+            </div>
+            {% elif t.saldo > 0 %}
+            <div class="work-saldo" style="color:var(--red)">
+                Saldo {{ t.saldo | moneda }}
+            </div>
+            {% endif %}
         </div>
         <i class="ti ti-chevron-right" style="color:var(--gray-300)"></i>
     </a>
@@ -56,7 +90,7 @@
             {% if cliente_q or maquina_q %}
             No se encontraron trabajos con ese criterio.
             {% else %}
-            Todavía no hay trabajos entregados.
+            No hay trabajos registrados todavía.
             {% endif %}
         </p>
     </div>

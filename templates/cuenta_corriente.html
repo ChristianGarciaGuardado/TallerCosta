@@ -94,8 +94,7 @@
                 </div>
                 <div style="padding:10px 14px">
                     <div style="font-size:11px;color:var(--text-light)">Saldo</div>
-                    <div style="font-size:15px;font-weight:600;
-                                color:{% if t.saldo > 0 %}var(--red){% else %}var(--green){% endif %}">
+                    <div style="font-size:15px;font-weight:600;color:{{ 'var(--red)' if t.saldo > 0 else 'var(--green)' }}">
                         {{ t.saldo | moneda }}
                     </div>
                 </div>
