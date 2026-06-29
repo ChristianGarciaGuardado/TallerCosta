@@ -330,50 +330,46 @@
             th, td { padding: 6px 8px; }
 
             /* ═══════════════════════════════════════════════════════
-               COMPORTAMIENTO EXCLUSIVO PARA MÓVIL
+               COMPORTAMIENTO UNIFICADO PARA CELULARES (TRABAJOS Y PRESUPUESTOS)
                ═══════════════════════════════════════════════════════ */
             .work-row, a.work-row { 
                 display: flex !important;
                 flex-direction: column !important; 
                 align-items: stretch !important; 
-                gap: 6px !important; 
+                gap: 8px !important; 
                 padding: 12px 35px 12px 12px !important; 
                 position: relative !important; 
             }
 
-            /* Forzamos a que el badge y Ramón se queden juntos horizontalmente */
-            .work-row .linea-superior {
-                display: flex !important;
-                flex-direction: row !important; 
-                align-items: center !important; 
-                flex-wrap: wrap !important;     
-                gap: 10px !important;           
-                width: 100% !important;
-            }
-
+            /* Forzamos a que el Badge se quede arriba y ocupe solo su espacio */
             .work-row .badge {
-                display: inline-block !important;
+                align-self: flex-start !important;
                 width: auto !important;
                 padding: 4px 8px !important;
                 white-space: nowrap !important;
-                margin: 0 !important;
+                margin: 0 0 2px 0 !important;
+            }
+
+            .work-row .work-info {
+                width: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 4px !important;
             }
 
             .work-row .work-name {
                 font-size: 14px !important;
                 font-weight: bold !important;
-                margin: 0 !important;
-            }
-
-            .work-row .work-info {
-                width: 100% !important;
+                white-space: normal !important; /* Permite quiebre si el nombre es largo */
+                overflow: visible !important;
+                text-overflow: clip !important;
             }
 
             .work-row .work-sub {
                 font-size: 11px !important;
                 color: var(--text-light, #718096) !important;
                 display: block !important;
-                margin-top: 2px !important;
+                margin-top: 0 !important;
             }
 
             /* Importe y Saldo uno al lado del otro abajo */
@@ -381,36 +377,27 @@
                 display: flex !important;
                 flex-direction: row !important; 
                 justify-content: flex-start !important; 
-                gap: 20px !important; 
+                align-items: center !important;
+                gap: 16px !important; 
                 margin-top: 4px !important;
                 border-top: 1px dashed rgba(0,0,0,0.08) !important; 
                 padding-top: 6px !important;
                 text-align: left !important;
             }
 
-            .work-row .work-total, 
-            .work-row .work-saldo {
+            .work-row .work-total {
                 font-size: 13px !important;
                 font-weight: 600 !important;
             }
-
-            /* Botones de acción (para presupuestos en celular) */
-            .work-row div[style*="display:flex"] {
-                width: 100% !important;
-                justify-content: flex-start !important;
-                gap: 8px !important;
-                margin-top: 6px !important;
-            }
-            .work-row .btn {
-                flex: 1 !important;
-                text-align: center !important;
-                padding: 8px 10px !important;
+            
+            .work-row .work-saldo {
                 font-size: 12px !important;
-                justify-content: center !important;
+                margin-top: 0 !important;
             }
 
-            /* La Flechita clavada a la derecha al medio */
-            .work-row i.ti-chevron-right { 
+            /* La Flecha / Lápiz clavados a la derecha al medio */
+            .work-row i.ti-chevron-right,
+            .work-row i.ti-pencil { 
                 position: absolute !important;
                 right: 12px !important;
                 top: 50% !important;
