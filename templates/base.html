@@ -319,109 +319,125 @@
             th, td { padding: 6px 8px; }
 
             /* ═══════════════════════════════════════════════════════
-               OPTIMIZACIÓN CALIBRADA DE FILAS (INICIO Y TRABAJOS)
+               OPTIMIZACIÓN QUIRÚRGICA PARA LAS TARJETAS (HTML REAL)
                ═══════════════════════════════════════════════════════ */
             .work-row, a.work-row { 
                 display: flex !important;
                 flex-direction: column !important; 
                 align-items: stretch !important; 
-                gap: 6px !important; 
-                padding: 12px 35px 12px 12px !important; /* Espacio extra a la derecha para que no pise la flecha */
+                gap: 8px !important; 
+                padding: 12px 35px 12px 12px !important; /* Espacio a la derecha para la flecha */
                 text-decoration: none !important; 
                 color: inherit !important;
-                position: relative !important; /* Necesario para clavar la flechita a la derecha */
+                position: relative !important; /* Clava la flecha a la derecha */
             }
 
-            /* LINEA 1: Forzamos a que el Badge y Ramón compartan el mismo renglón horizontal */
-            .work-row {
-                /* Asegura que el contenido se alinee horizontalmente al principio */
-                display: flex !important;
-            }
-
-            /* Forzamos al Badge a que sea chiquito, flote a la izquierda y NO ocupe el ancho completo */
+            /* LINEA 1: Hacemos que el Badge y la caja de textos convivan horizontalmente */
             .work-row .badge {
                 display: inline-block !important;
-                width: auto !important; /* Evita que se estire al 100% */
+                align-self: flex-start !important; /* Evita que se estire hacia abajo */
+                width: auto !important;
                 max-width: fit-content !important;
-                float: left !important;
-                margin-right: 12px !important; /* Separa el badge del nombre de Ramón */
                 margin-bottom: 0 !important;
                 padding: 4px 8px !important;
                 white-space: nowrap !important;
             }
 
-            /* Forzamos al contenedor de texto a ponerse al lado del badge en la misma línea */
+            /* Quitamos la inercia de columna a la caja de información */
             .work-row .work-info {
-                display: inline-flex !important;
-                flex-direction: row !important; /* Se ponen en la misma fila */
-                flex-wrap: wrap !important; /* Si los detalles de abajo son largos, caen al siguiente renglón */
-                align-items: center !important;
-                gap: 10px !important;
-                width: auto !important;
-            }
-
-            /* El nombre de Ramón se acopla en la misma línea horizontal */
-            .work-row .work-name {
-                font-size: 14px !important;
-                display: inline-block !important;
-                margin: 0 !important;
-                font-weight: bold !important;
-            }
-
-            /* LINEA 2: Detalles en gris (REP-0008...) */
-            .work-row .work-sub {
-                font-size: 11px !important;
-                color: var(--text-light, #718096) !important;
-                white-space: normal !important;
-                display: block !important;
                 width: 100% !important;
-            }
-
-            /* LINEA 3: Importe y Saldo (Ya se veían perfectos, los mantenemos igual) */
-            .work-row .work-amounts {
                 display: flex !important;
-                flex-direction: row !important; 
-                justify-content: flex-start !important; 
-                gap: 20px !important; 
-                margin-top: 4px !important;
-                border-top: 1px dashed rgba(0,0,0,0.05); 
-                padding-top: 6px !important;
-                width: 100% !important;
+                flex-direction: column !important; /* Mantiene el nombre arriba de los detalles grises */
+                gap: 4px !important;
             }
+
+            /* El TRUCO: Modificamos el orden visual con Flexbox para que el nombre 
+               suba al lado del badge en el mismo renglón */
+            @media (max-width: 768px) {
+                .work-row {
+                    /* Transformamos la tarjeta temporalmente en un contenedor fluido */
+                    display: grid !important;
+                    grid-template-columns: auto 1fr !important;
+                    align-items: center !important;
+                }
+
+                /* Acomodamos cada pieza en su posición de grilla */
+                .work-row .badge {
+                    grid-column: 1;
+                    grid-row: 1;
+                    margin-bottom: 0 !important;
+                }
+
+                .work-row .work-info {
+                    grid-column: 1 / span 2;
+                    grid-row: 1 / span 2;
+                    display: block !important; /* Permite que el texto fluya libre */
+                }
+
+                /* Hacemos que el nombre deje espacio a la izquierda para que entre el badge */
+                .work-row .work-name {
+                    font-size: 14px !important;
+                    font-weight: bold !important;
+                    display: block !important;
+                    /* Le damos una sangría horizontal calculada para que se posicione al lado del badge */
+                    padding-left: 95px; /* Ajustá este número si el badge "Finalizado sin entregar" es muy largo */
+                    min-height: 22px;
+                    line-height: 22px;
+                }
+
+                /* Los detalles en gris vuelven a su posición normal abajo de todo sin sangría */
+                .work-row .work-sub {
+                    font-size: 11px !important;
+                    color: var(--text-light, #718096) !important;
+                    display: block !important;
+                    padding-left: 0 !important;
+                    margin-top: 6px !important;
+                    width: 100% !important;
+                }
+
+                /* Los montos abajo ocupan todo el ancho de la grilla */
+                .work-row .work-amounts {
+                    grid-column: 1 / span 2;
+                    grid-row: 3;
+                    display: flex !important;
+                    flex-direction: row !important; 
+                    justify-content: flex-start !important; 
+                    gap: 20px !important; 
+                    margin-top: 4px !important;
+                    border-top: 1px dashed rgba(0,0,0,0.08) !important; 
+                    padding-top: 6px !important;
+                }
+
+                .work-row div[style*="display:flex"] {
+                    grid-column: 1 / span 2; /* Les decimos que también ocupen todo el ancho en la grilla */
+                    width: 100% !important;
+                    justify-content: flex-start !important;
+                    gap: 8px !important;
+                    margin-top: 6px !important;
+                }
+                .work-row .btn {
+                    flex: 1 !important;
+                    text-align: center !important;
+                    padding: 8px 10px !important;
+                    font-size: 12px !important;
+                    justify-content: center !important;
+                }
+            }
+
             .work-row .work-total, 
-            .work-row .work-amounts div {
+            .work-row .work-saldo {
                 font-size: 13px !important;
                 font-weight: 600 !important;
             }
 
-            /* 🎯 LA FLECHITA: La sacamos del flujo y la clavamos a la derecha al medio */
-            .work-row i.ti-chevron-right, 
-            .work-row .ti-chevron-right,
-            .work-row > svg,
-            .work-row > span:last-child:not(.badge) { 
+            /* LA FLECHITA (Se queda fija a la derecha al medio) */
+            .work-row i.ti-chevron-right { 
                 position: absolute !important;
                 right: 12px !important;
                 top: 50% !important;
-                transform: translateY(-50%) !important; /* La centra verticalmente perfecta */
+                transform: translateY(-50%) !important;
                 font-size: 16px !important;
-                color: #a0aec0 !important;
                 margin: 0 !important;
-                padding: 0 !important;
-            }
-
-            /* LINEA PARA BOTONES (Lista de Presupuestos) */
-            .work-row div[style*="display:flex"] {
-                width: 100% !important;
-                justify-content: flex-start !important;
-                gap: 8px !important;
-                margin-top: 6px !important;
-            }
-            .work-row .btn {
-                flex: 1 !important;
-                text-align: center !important;
-                padding: 8px 10px !important;
-                font-size: 12px !important;
-                justify-content: center !important;
             }
 
 
