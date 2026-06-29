@@ -24,7 +24,7 @@
 
         <div class="work-info">
             <div class="work-name">
-                {{ p.cliente.empresa }} — {{ p.tipo_equipo }} {{ p.marca }} {{ p.modelo }}
+                {{ p.cliente.empresa }} — {{ p.tipo_equipo if p.tipo_equipo else '' }} {{ p.marca }} {{ p.modelo }}
             </div>
             <div class="work-sub">
                 {{ p.numero }} &bull; {{ p.tipo_trabajo }} &bull; {{ p.creado.strftime('%d/%m/%Y') }}
@@ -35,44 +35,41 @@
             <div class="work-total">{{ p.total | moneda }}</div>
         </div>
 
-        <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">
-            <!-- Descargar PDF -->
+        <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;align-items:center;">
             <a href="/presupuestos/{{ p.id }}/pdf" class="btn btn-ghost btn-sm" target="_blank">
                 <i class="ti ti-file-download"></i> PDF
             </a>
 
             {% if p.estado in ['borrador', 'enviado'] %}
-                <!-- Convertir a trabajo -->
                 <a href="/presupuestos/{{ p.id }}/convertir" class="btn btn-green btn-sm">
                     <i class="ti ti-check"></i> Convertir a trabajo
                 </a>
 
-                <!-- Cambiar estado enviado/borrador -->
                 <form method="post" action="/presupuestos/{{ p.id }}/estado" style="display:inline">
-                    <input type="hidden" name="estado"
-                           value="{% if p.estado == 'borrador' %}enviado{% else %}borrador{% endif %}">
+                    <input type="hidden" name="estado" value="{% if p.estado == 'borrador' %}enviado{% else %}borrador{% endif %}">
                     <button type="submit" class="btn btn-ghost btn-sm">
                         {% if p.estado == 'borrador' %}Marcar enviado{% else %}Volver a borrador{% endif %}
                     </button>
                 </form>
 
-                <!-- Marcar rechazado -->
                 <form method="post" action="/presupuestos/{{ p.id }}/estado" style="display:inline">
                     <input type="hidden" name="estado" value="rechazado">
-                    <button type="submit" class="btn btn-ghost btn-sm"
-                            onclick="return confirm('¿Marcar como rechazado?')">
+                    <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('¿Marcar como rechazado?')">
                         <i class="ti ti-x"></i>
                     </button>
                 </form>
             {% endif %}
 
-            <!-- Editar -->
-            {% if p.estado == 'pendiente' %}
+            {% if p.estado in ['borrador', 'enviado'] %}
                 <a href="/presupuestos/{{ p.id }}/editar" class="btn btn-ghost btn-sm">
                     <i class="ti ti-pencil"></i> Editar
                 </a>
+            {% elif p.estado == 'aceptado' and p.id in ids_activos %}
+                <a href="/presupuestos/{{ p.id }}/editar" class="btn btn-light btn-sm" style="color:var(--green);font-weight:600" title="Trabajo activo en taller. Hacé clic para agregar gastos extras.">
+                    <i class="ti ti-pencil"></i> Ampliar
+                </a>
             {% else %}
-                <span class="btn btn-sm disabled" style="opacity: 0.4; cursor: not-allowed;" title="Presupuesto cerrado">
+                <span class="btn btn-sm disabled" style="opacity: 0.4; cursor: not-allowed;" title="Este registro histórico no se puede modificar">
                     <i class="ti ti-lock"></i> Bloqueado
                 </span>
             {% endif %}

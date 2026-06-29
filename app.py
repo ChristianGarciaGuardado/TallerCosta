@@ -308,69 +308,129 @@ def editar_cliente(id):
     return render_template('cliente_form.html', cliente=c)
 
 # ═══════════════════════════════════════════════════════
-# RUTAS — PRESUPUESTOS
+# RUTAS — PRESUPUESTOS (CONSOLIDADO)
 # ═══════════════════════════════════════════════════════
 
 @app.route('/presupuestos')
 def presupuestos():
-    estado = request.args.get('estado', 'activos')
-    if estado == 'activos':
-        lista = Presupuesto.query.filter(Presupuesto.estado.in_(['borrador', 'enviado'])).order_by(Presupuesto.creado.desc()).all()
-    elif estado == 'aceptados':
-        lista = Presupuesto.query.filter_by(estado='aceptado').order_by(Presupuesto.creado.desc()).all()
-    else:
-        lista = Presupuesto.query.filter_by(estado='rechazado').order_by(Presupuesto.creado.desc()).all()
-    return render_template('presupuestos.html', lista=lista, estado=estado)
+    """Listado general de presupuestos filtrado por pestañas en la URL"""
+    estado_filtro = request.args.get('estado', 'activos')
+    
+    # 1. Determinamos qué mostrar según la pestaña seleccionada
+    if estado_filtro == 'aceptados':
+        lista_presupuestos = Presupuesto.query.filter_by(estado='aceptado').order_by(Presupuesto.creado.desc()).all()
+    elif estado_filtro == 'rechazados':
+        lista_presupuestos = Presupuesto.query.filter_by(estado='rechazado').order_by(Presupuesto.creado.desc()).all()
+    else:  # 'activos' -> Muestra borradores y enviados
+        lista_presupuestos = Presupuesto.query.filter(Presupuesto.estado.in_(['borrador', 'enviado'])).order_by(Presupuesto.creado.desc()).all()
+    
+    # 2. Obtenemos los IDs de presupuestos cuyos trabajos siguen activos en el taller para habilitar el botón "Ampliar"
+    trabajos_activos = Trabajo.query.filter(Trabajo.estado.in_(['en_curso', 'finalizado'])).all()
+    ids_presupuestos_activos = [t.presupuesto_id for t in trabajos_activos if t.presupuesto_id]
+    
+    return render_template('presupuestos.html', 
+                           lista=lista_presupuestos, 
+                           estado=estado_filtro, 
+                           ids_activos=ids_presupuestos_activos)
 
-@app.route('/presupuestos/nuevo', methods=['GET', 'POST'])
-def nuevo_presupuesto():
-    clientes = Cliente.query.order_by(Cliente.empresa).all()
-    tipos_equipo = get_opciones('tipo_equipo')
-    tipos_trabajo = get_opciones('tipo_trabajo')
-    if request.method == 'POST':
-        p = Presupuesto(
-            numero=gen_numero_presupuesto(),
-            cliente_id=request.form['cliente_id'],
-            tipo_equipo=request.form.get('tipo_equipo'),
-            identificador=request.form.get('identificador'),
-            marca=request.form.get('marca'),
-            modelo=request.form.get('modelo'),
-            tipo_trabajo=request.form.get('tipo_trabajo'),
-            observaciones=request.form.get('observaciones'),
-            estado=request.form.get('estado', 'borrador')
-        )
-        db.session.add(p)
-        db.session.flush()
-        descripciones = request.form.getlist('descripcion[]')
-        cantidades = request.form.getlist('cantidad[]')
-        precios = request.form.getlist('precio[]')
-        descuentos = request.form.getlist('descuento[]')
-        total = 0
-        for desc, cant, precio, desc_pct in zip(descripciones, cantidades, precios, descuentos):
-            if desc.strip():
-                cant_f = float(cant or 1)
-                precio_f = float(precio or 0)
-                desc_f = float(desc_pct or 0)
-                sub = cant_f * precio_f * (1 - desc_f / 100)
-                total += sub
-                item = ItemPresupuesto(
-                    presupuesto_id=p.id,
-                    descripcion=desc,
-                    cantidad=cant_f,
-                    precio_unitario=precio_f,
-                    descuento=desc_f,
-                    subtotal=sub
-                )
-                db.session.add(item)
-        p.total = total
-        db.session.commit()
-        return redirect(url_for('presupuestos'))
-    return render_template('presupuesto_form.html', presupuesto=None,
-                           clientes=clientes, tipos_equipo=tipos_equipo, tipos_trabajo=tipos_trabajo)
 
 @app.route('/presupuestos/<int:id>/editar', methods=['GET', 'POST'])
 def editar_presupuesto(id):
+    """Edición inteligente de presupuestos pendientes o ampliaciones en taller"""
     p = Presupuesto.query.get_or_404(id)
+    
+    # Validación comercial de estados
+    if p.estado == 'rechazado':
+        return "Este presupuesto fue rechazado y no se puede modificar.", 403
+        
+    if p.estado == 'aceptado':
+        trabajo_asociado = Trabajo.query.filter(
+            Trabajo.presupuesto_id == p.id,
+            Trabajo.estado.in_(['en_curso', 'finalizado'])
+        ).first()
+        if not trabajo_asociado:
+            return "No se puede editar este presupuesto porque el trabajo finalizó, fue entregado o anulado.", 403
+
+    clientes = Cliente.query.order_by(Cliente.empresa).all()
+    # Mock data si tus selectores usan listas estáticas, adaptalo si vienen de BD
+    tipos_equipo = ['Camión', 'Utilitario', 'Acoplado', 'Máquina Vial']
+    tipos_trabajo = ['Mecánica General', 'Electricidad', 'Frenos', 'Motor', 'Service']
+    
+    if request.method == 'POST':
+        p.cliente_id = int(request.form.get('cliente_id'))
+        p.tipo_equipo = request.form.get('tipo_equipo')
+        p.marca = request.form.get('marca')
+        p.modelo = request.form.get('modelo')
+        p.identificador = request.form.get('identificador')
+        p.tipo_trabajo = request.form.get('tipo_trabajo')
+        p.observaciones = request.form.get('observaciones')
+        
+        # Si el presupuesto NO estaba aceptado, cambia su estado según el botón presionado.
+        # Si YA estaba aceptado, preserva el estado 'aceptado'.
+        if p.estado not in ['aceptado']:
+            p.estado = request.form.get('estado', 'borrador')
+        
+        # Procesamos ítems cuidando la consistencia de nombres del HTML (descripcion, cantidad, precio, descuento)
+        descripciones = request.form.getlist('descripcion[]')
+        cantidades = request.form.getlist('cantidad[]')
+        precios = request.form.getlist('precio[]')  # Sincronizado con el name="precio[]" de tu HTML
+        descuentos = request.form.getlist('descuento[]')
+        
+        # Eliminamos ítems viejos para reescribir
+        for item in p.items:
+            db.session.delete(item)
+            
+        total_general = 0
+        for i in range(len(descripciones)):
+            if descripciones[i].strip():
+                cant = float(cantidades[i]) if (i < len(cantidades) and cantidades[i]) else 1.0
+                precio = float(precios[i]) if (i < len(precios) and precios[i]) else 0.0
+                desc = float(descuentos[i]) if (i < len(descuentos) and descuentos[i]) else 0.0
+                
+                subtotal = cant * precio * (1 - desc / 100)
+                total_general += subtotal
+                
+                nuevo_item = ItemPresupuesto(
+                    presupuesto_id=p.id,
+                    descripcion=descripciones[i],
+                    cantidad=cant,
+                    precio_unitario=precio,
+                    descuento=desc,
+                    subtotal=subtotal
+                )
+                db.session.add(nuevo_item)
+        
+        p.total = total_general
+        
+        # Si es una ampliación, sincronizamos el monto de forma automática en el taller
+        if p.estado == 'aceptado':
+            trabajo_taller = Trabajo.query.filter_by(presupuesto_id=p.id).first()
+            if trabajo_taller:
+                trabajo_taller.presupuestado = total_general
+                trabajo_taller.marca = p.marca
+                trabajo_taller.modelo = p.modelo
+                trabajo_taller.identificador = p.identificador
+                trabajo_taller.tipo_trabajo = p.tipo_trabajo
+        
+        db.session.commit()
+        return redirect(url_for('presupuestos'))
+        
+    return render_template('presupuestos_form.html', 
+                           presupuesto=p, 
+                           clientes=clientes, 
+                           tipos_equipo=tipos_equipo, 
+                           tipos_trabajo=tipos_trabajo)
+
+
+@app.route('/presupuestos/<int:id>/estado', methods=['POST'])
+def cambiar_estado_presupuesto(id):
+    """Control de cambios de estado directos desde los botones del listado"""
+    p = Presupuesto.query.get_or_404(id)
+    nuevo_estado = request.form.get('estado')
+    
+    p.estado = nuevo_estado
+    db.session.commit()
+    return redirect(url_for('presupuestos'))
     
     # ════════════════════════════════════════════════════════════════════
     # VALIDADOR INTELIGENTE DE EDICIÓN
