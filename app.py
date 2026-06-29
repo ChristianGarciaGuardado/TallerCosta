@@ -205,24 +205,60 @@ app.jinja_env.filters['moneda'] = fmt_moneda
 
 @app.route('/')
 def inicio():
-    """Pantalla principal con KPIs y trabajos activos"""
-    trabajos_activos = Trabajo.query.filter(Trabajo.estado != 'entregado').order_by(Trabajo.creado.desc()).all()
-    presupuestos_pendientes = Presupuesto.query.filter(
-        Presupuesto.estado.in_(['borrador', 'enviado'])
-    ).count()
-    mes_actual = date.today().month
-    anio_actual = date.today().year
-    cobros_mes = Cobro.query.filter(
-        db.extract('month', Cobro.fecha) == mes_actual,
-        db.extract('year', Cobro.fecha) == anio_actual
+    """Pantalla principal con KPIs comerciales por rango de fechas y listados operativos"""
+    hoy = date.today()
+    
+    # 1. Capturamos las fechas desde/hasta de la barra de direcciones
+    # Si no existen, por defecto ponemos desde el 1 del mes actual hasta el día de hoy
+    fecha_desde_str = request.args.get('desde', '')
+    fecha_hasta_str = request.args.get('hasta', '')
+    
+    if fecha_desde_str:
+        fecha_desde = datetime.strptime(fecha_desde_str, '%Y-%m-%d').date()
+    else:
+        fecha_desde = date(hoy.year, hoy.month, 1)
+        fecha_desde_str = fecha_desde.strftime('%Y-%m-%d')
+        
+    if fecha_hasta_str:
+        fecha_hasta = datetime.strptime(fecha_hasta_str, '%Y-%m-%d').date()
+    else:
+        fecha_hasta = hoy
+        fecha_hasta_str = fecha_hasta.strftime('%Y-%m-%d')
+
+    # 2. LISTADO DE TRABAJOS ACTIVOS (Fijos del taller hoy, sin importar el filtro de fechas)
+    trabajos_activos = Trabajo.query.filter(
+        Trabajo.estado.in_(['en_curso', 'finalizado'])
+    ).order_by(Trabajo.creado.desc()).all()
+
+    # 3. LISTADO DE PRESUPUESTOS PENDIENTES (Fijos para el día a día)
+    presupuestos_pendientes_list = Presupuesto.query.filter(
+        Presupuesto.estado.in_(['borrador', 'enviado', 'pendiente'])
+    ).order_by(Presupuesto.creado.desc()).all()
+
+    # 4. CÁLCULO DE KPIs COMERCIALES
+    cant_presupuestos = len(presupuestos_pendientes_list)
+    total_dinero_pendientes = sum(p.total for p in presupuestos_pendientes_list)
+
+    # KPI 3: Ventas del período seleccionado (Trabajos creados entre Fecha Desde y Fecha Hasta)
+    trabajos_del_periodo = Trabajo.query.filter(
+        Trabajo.creado >= fecha_desde,
+        Trabajo.creado <= fecha_hasta,
+        Trabajo.estado != 'anulado'
     ).all()
-    total_cobrado_mes = sum(c.monto for c in cobros_mes)
-    total_saldo = sum(t.saldo for t in Trabajo.query.filter(Trabajo.estado != 'entregado').all())
+    ventas_del_periodo = sum(t.presupuestado for t in trabajos_del_periodo)
+
+    # KPI 4: Saldo total a cobrar en el taller hoy
+    total_saldo = sum(t.saldo for t in Trabajo.query.filter(Trabajo.estado.in_(['en_curso', 'finalizado'])).all())
+
     return render_template('inicio.html',
-        trabajos=trabajos_activos,
-        presupuestos_pendientes=presupuestos_pendientes,
-        total_cobrado_mes=total_cobrado_mes,
-        total_saldo=total_saldo)
+                           trabajos=trabajos_activos,
+                           presupuestos_lista=presupuestos_pendientes_list,
+                           presupuestos_pendientes=cant_presupuestos,
+                           total_dinero_pendientes=total_dinero_pendientes,
+                           ventas_este_mes=ventas_del_periodo,  # Mantenemos el nombre de la variable para el HTML
+                           total_saldo=total_saldo,
+                           fecha_desde=fecha_desde_str,
+                           fecha_hasta=fecha_hasta_str)
 
 # ═══════════════════════════════════════════════════════
 # RUTAS — CLIENTES
@@ -333,6 +369,8 @@ def nuevo_presupuesto():
 @app.route('/presupuestos/<int:id>/editar', methods=['GET', 'POST'])
 def editar_presupuesto(id):
     p = Presupuesto.query.get_or_404(id)
+    if p.estado in ['aceptado', 'rechazado']:
+        return "Este presupuesto ya fue aceptado o rechazado y no se puede modificar.", 403
     clientes = Cliente.query.order_by(Cliente.empresa).all()
     tipos_equipo = get_opciones('tipo_equipo')
     tipos_trabajo = get_opciones('tipo_trabajo')
@@ -772,22 +810,33 @@ def cuenta_corriente():
 
 @app.route('/historial')
 def historial():
+    """Historial técnico global: búsquedas exactas por desplegables (activos + pasados)"""
     cliente_q = request.args.get('cliente', '')
     maquina_q = request.args.get('maquina', '')
+    
+    # Consulta limpia para traer todos los estados (en curso, finalizados, entregados)
     q = Trabajo.query
+    
+    # CAMBIO: Comparación exacta (==) para el nombre del cliente seleccionado
     if cliente_q:
-        q = q.join(Cliente).filter(Cliente.empresa.ilike(f'%{cliente_q}%'))
+        q = q.join(Cliente).filter(Cliente.empresa == cliente_q)
+        
+    # CAMBIO: Comparación exacta (==) para evitar cruces si hay patentes/internos parecidos
     if maquina_q:
-        q = q.filter(Trabajo.identificador.ilike(f'%{maquina_q}%'))
-    lista = q.order_by(Trabajo.fecha_entrega.desc()).all()
+        q = q.filter(Trabajo.identificador == maquina_q)
+        
+    # Ordenamos por ingreso: lo último que entró al taller figura arriba de todo
+    lista = q.order_by(Trabajo.fecha_ingreso.desc()).all()
+    
+    # Listas para rellenar los componentes del buscador en el HTML
     clientes = Cliente.query.order_by(Cliente.empresa).all()
     maquinas = [t[0] for t in db.session.query(Trabajo.identificador)
-            .filter(Trabajo.identificador != None, Trabajo.identificador != '')
-            .distinct().order_by(Trabajo.identificador).all()]
+                .filter(Trabajo.identificador != None, Trabajo.identificador != '')
+                .distinct().order_by(Trabajo.identificador).all()]
 
     return render_template('historial.html', trabajos=lista,
-                       cliente_q=cliente_q, maquina_q=maquina_q,
-                       clientes=clientes, maquinas=maquinas)
+                           cliente_q=cliente_q, maquina_q=maquina_q,
+                           clientes=clientes, maquinas=maquinas)
 
 # ═══════════════════════════════════════════════════════
 # RUTAS — GASTOS GENERALES

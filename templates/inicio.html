@@ -12,18 +12,40 @@
 
 {% block content %}
 
+<form method="get" class="filter-bar" style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 6px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-light);">Desde:</label>
+        <input type="date" name="desde" value="{{ fecha_desde }}" style="padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 6px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-light);">Hasta:</label>
+        <input type="date" name="hasta" value="{{ fecha_hasta }}" style="padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-sm">
+        <i class="ti ti-filter"></i> Filtrar Rango
+    </button>
+    
+    <a href="/" class="btn btn-ghost btn-sm" title="Restablecer al mes actual">
+        <i class="ti ti-refresh"></i> Mes Actual
+    </a>
+</form>
+
 <div class="kpi-grid">
     <div class="kpi">
         <div class="kpi-label">Presupuestos pendientes</div>
-        <div class="kpi-value amber">{{ presupuestos_pendientes }}</div>
+        <div class="kpi-value amber" style="font-size: 14px; margin-top: 5px; font-weight: 600;">
+            {{ presupuestos_pendientes }} u. / <span style="font-size:20px">{{ total_dinero_pendientes | moneda }}</span>
+        </div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Trabajos activos</div>
         <div class="kpi-value blue">{{ trabajos | length }}</div>
     </div>
     <div class="kpi">
-        <div class="kpi-label">Cobrado este mes</div>
-        <div class="kpi-value green">{{ total_cobrado_mes | moneda }}</div>
+        <div class="kpi-label">Ventas del período</div>
+        <div class="kpi-value green">{{ ventas_este_mes | moneda }}</div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Saldo total a cobrar</div>
@@ -31,19 +53,17 @@
     </div>
 </div>
 
-{% if trabajos %}
-    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">
-        Trabajos activos
-    </div>
+<div style="font-size:13px; font-weight:600; color:var(--text); margin: 24px 0 12px 0;">
+    <i class="ti ti-tool"></i> Trabajos activos en taller
+</div>
 
+{% if trabajos %}
     {% for t in trabajos %}
     <a href="/trabajos/{{ t.id }}" class="work-row">
         {% if t.estado == 'en_curso' %}
             <span class="badge badge-amber">En curso</span>
         {% elif t.estado == 'finalizado' %}
             <span class="badge badge-red">Finalizado sin entregar</span>
-        {% elif t.estado == 'anulado' %}
-            <span class="badge badge-gray">Anulado</span>
         {% endif %}
 
         <div class="work-info">
@@ -66,14 +86,45 @@
         <i class="ti ti-chevron-right" style="color:var(--gray-300)"></i>
     </a>
     {% endfor %}
-
 {% else %}
     <div class="empty-state">
         <i class="ti ti-tool"></i>
         <p>No hay trabajos activos por el momento.</p>
-        <a href="/presupuestos/nuevo" class="btn btn-primary" style="margin-top:16px">
-            Crear primer presupuesto
-        </a>
+    </div>
+{% endif %}
+
+
+<div style="font-size:13px; font-weight:600; color:var(--text); margin: 32px 0 12px 0;">
+    <i class="ti ti-file-text"></i> Presupuestos pendientes de aprobación
+</div>
+
+{% if presupuestos_lista %}
+    {% for p in presupuestos_lista %}
+    <a href="/presupuestos/{{ p.id }}/editar" class="work-row">
+        <span class="badge badge-gray" style="background:#E5E7EB; color:#4B5563;">
+            Pendiente
+        </span>
+        
+        <div class="work-info">
+            <div class="work-name">{{ p.cliente.empresa }} — {{ p.marca }} {{ p.modelo }}</div>
+            <div class="work-sub">
+                {{ p.numero }} &bull; {{ p.tipo_trabajo }} &bull; {{ p.identificador }}
+                &bull; Creado {{ p.creado.strftime('%d/%m/%Y') if p.creado else '' }}
+            </div>
+        </div>
+
+        <div class="work-amounts">
+            <div class="work-total" style="color: var(--navy);">{{ p.total | moneda }}</div>
+            <div class="work-saldo" style="color: var(--text-light); font-size: 11px;">Hacé clic para editar</div>
+        </div>
+
+        <i class="ti ti-pencil" style="color:var(--gray-500); margin-left: 10px;"></i>
+    </a>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="ti ti-file-text"></i>
+        <p>No hay presupuestos pendientes en este momento.</p>
     </div>
 {% endif %}
 

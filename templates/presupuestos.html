@@ -67,9 +67,15 @@
             {% endif %}
 
             <!-- Editar -->
-            <a href="/presupuestos/{{ p.id }}/editar" class="btn btn-ghost btn-sm">
-                <i class="ti ti-pencil"></i>
-            </a>
+            {% if p.estado == 'pendiente' %}
+                <a href="/presupuestos/{{ p.id }}/editar" class="btn btn-ghost btn-sm">
+                    <i class="ti ti-pencil"></i> Editar
+                </a>
+            {% else %}
+                <span class="btn btn-sm disabled" style="opacity: 0.4; cursor: not-allowed;" title="Presupuesto cerrado">
+                    <i class="ti ti-lock"></i> Bloqueado
+                </span>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
