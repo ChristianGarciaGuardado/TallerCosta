@@ -393,7 +393,6 @@ def nuevo_presupuesto():
                 nuevo_item = ItemPresupuesto(
                     presupuesto_id=p.id,
                     descripcion=descripciones[i],
-                    amount=cant, # Mapeado al campo cantidad
                     cantidad=cant,
                     precio_unitario=precio,
                     descuento=desc,
