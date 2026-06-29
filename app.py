@@ -251,6 +251,21 @@ def inicio():
     ).all()
     ventas_del_periodo = sum(t.presupuestado for t in trabajos_del_periodo)
 
+    # KPI NUEVO: Gastos del período (Gastos Generales + Gastos de Reparación)
+    gastos_generales_del_periodo = Gasto.query.filter(
+        db.func.date(Gasto.fecha) >= fecha_desde,
+        db.func.date(Gasto.fecha) <= fecha_hasta
+    ).all()
+    total_gastos_generales = sum(g.monto for g in gastos_generales_del_periodo)
+
+    gastos_trabajos_del_periodo = GastoTrabajo.query.filter(
+        db.func.date(GastoTrabajo.fecha) >= fecha_desde,
+        db.func.date(GastoTrabajo.fecha) <= fecha_hasta
+    ).all()
+    total_gastos_trabajos = sum(gt.monto for gt in gastos_trabajos_del_periodo)
+
+    gastos_periodo = total_gastos_generales + total_gastos_trabajos
+
     # KPI 4: Saldo total histórico a cobrar (De los trabajos activos en este momento)
     total_saldo = sum(t.saldo for t in trabajos_activos)
 
