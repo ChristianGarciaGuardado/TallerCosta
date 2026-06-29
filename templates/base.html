@@ -318,17 +318,65 @@
             table { font-size: 12px; }
             th, td { padding: 6px 8px; }
 
-            /* Filas de presupuestos en modo tarjeta vertical */
-            .work-row { 
+            /* ═══════════════════════════════════════════════════════
+               OPTIMIZACIÓN ÚNICA PARA FILAS (PRESUPUESTOS E INICIO)
+               ═══════════════════════════════════════════════════════ */
+            .work-row, a.work-row { 
+                display: flex !important; /* <── Forzamos a que tanto DIVs como enlaces se comporten igual */
                 flex-direction: column !important; 
-                align-items: flex-start !important; 
-                gap: 12px !important; 
-                padding: 12px !important; 
+                align-items: stretch !important; 
+                gap: 6px !important; 
+                padding: 10px 12px !important; 
+                text-decoration: none !important; /* Le quita cualquier subrayado azul feo de los links */
+                color: inherit !important; /* Mantiene los colores originales de tu texto */
             }
+
+            /* LINEA 1: El badge y los datos del cliente conviven horizontalmente */
+            .work-row .badge {
+                align-self: flex-start !important;
+                margin-bottom: 2px !important;
+                display: inline-block !important;
+            }
+            .work-row .work-info {
+                width: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 4px !important;
+            }
+            .work-row .work-name {
+                font-size: 14px !important;
+                margin-top: 2px !important;
+            }
+
+            /* LINEA 2: Detalles en gris ocupan su propio renglón sin cortarse */
+            .work-row .work-sub {
+                font-size: 11px !important;
+                color: var(--text-light, #718096) !important;
+                white-space: normal !important;
+            }
+
+            /* LINEA 3 (Para el Inicio): Total y Saldo pegados en la misma línea */
+            .work-row .work-amounts {
+                display: flex !important;
+                flex-direction: row !important; 
+                justify-content: flex-start !important; 
+                gap: 20px !important; 
+                margin-top: 4px !important;
+                border-top: 1px dashed rgba(0,0,0,0.05); 
+                padding-top: 4px !important;
+            }
+            .work-row .work-total, 
+            .work-row .work-amounts div {
+                font-size: 13px !important;
+                font-weight: 600 !important;
+            }
+
+            /* LINEA 4 (Para la lista de Presupuestos): Contenedor de botones abajo */
             .work-row div[style*="display:flex"] {
                 width: 100% !important;
                 justify-content: flex-start !important;
                 gap: 8px !important;
+                margin-top: 6px !important;
             }
             .work-row .btn {
                 flex: 1 !important;
@@ -337,6 +385,8 @@
                 font-size: 12px !important;
                 justify-content: center !important;
             }
+
+
         }
     </style>
 </head>
