@@ -208,8 +208,7 @@ def inicio():
     """Pantalla principal con KPIs comerciales por rango de fechas y listados operativos"""
     hoy = date.today()
     
-    # 1. Capturamos las fechas desde/hasta de la barra de direcciones
-    # Si no existen, por defecto ponemos desde el 1 del mes actual hasta el día de hoy
+    # Filtro por rango de fechas (por defecto: desde el día 1 de este mes hasta hoy)
     fecha_desde_str = request.args.get('desde', '')
     fecha_hasta_str = request.args.get('hasta', '')
     
@@ -225,21 +224,24 @@ def inicio():
         fecha_hasta = hoy
         fecha_hasta_str = fecha_hasta.strftime('%Y-%m-%d')
 
-    # 2. LISTADO DE TRABAJOS ACTIVOS (Fijos del taller hoy, sin importar el filtro de fechas)
+    # 1. LISTADO DE TRABAJOS ACTIVOS (Fijos del taller hoy, excluyendo 'entregado' y 'anulado')
     trabajos_activos = Trabajo.query.filter(
         Trabajo.estado.in_(['en_curso', 'finalizado'])
     ).order_by(Trabajo.creado.desc()).all()
 
-    # 3. LISTADO DE PRESUPUESTOS PENDIENTES (Fijos para el día a día)
+    # 2. LISTADO DE PRESUPUESTOS PENDIENTES (Solo los que esperan aprobación)
     presupuestos_pendientes_list = Presupuesto.query.filter(
         Presupuesto.estado.in_(['borrador', 'enviado', 'pendiente'])
     ).order_by(Presupuesto.creado.desc()).all()
 
-    # 4. CÁLCULO DE KPIs COMERCIALES
+    # 3. CÁLCULO DE KPIs
+    # KPI 1: Cantidad de presupuestos pendientes
     cant_presupuestos = len(presupuestos_pendientes_list)
+    
+    # KPI 2: Suma de dinero potencial de lo que está pendiente en la calle
     total_dinero_pendientes = sum(p.total for p in presupuestos_pendientes_list)
 
-    # KPI 3: Ventas del período seleccionado (Trabajos creados entre Fecha Desde y Fecha Hasta)
+    # KPI 3: Ventas del período (Suma directa del campo 'presupuestado' de los trabajos creados en el rango, sin anulados)
     trabajos_del_periodo = Trabajo.query.filter(
         Trabajo.creado >= fecha_desde,
         Trabajo.creado <= fecha_hasta,
@@ -247,15 +249,15 @@ def inicio():
     ).all()
     ventas_del_periodo = sum(t.presupuestado for t in trabajos_del_periodo)
 
-    # KPI 4: Saldo total a cobrar en el taller hoy
-    total_saldo = sum(t.saldo for t in Trabajo.query.filter(Trabajo.estado.in_(['en_curso', 'finalizado'])).all())
+    # KPI 4: Saldo total histórico a cobrar (De los trabajos activos en este momento)
+    total_saldo = sum(t.saldo for t in trabajos_activos)
 
     return render_template('inicio.html',
                            trabajos=trabajos_activos,
                            presupuestos_lista=presupuestos_pendientes_list,
                            presupuestos_pendientes=cant_presupuestos,
                            total_dinero_pendientes=total_dinero_pendientes,
-                           ventas_este_mes=ventas_del_periodo,  # Mantenemos el nombre de la variable para el HTML
+                           ventas_este_mes=ventas_del_periodo,
                            total_saldo=total_saldo,
                            fecha_desde=fecha_desde_str,
                            fecha_hasta=fecha_hasta_str)
@@ -369,48 +371,83 @@ def nuevo_presupuesto():
 @app.route('/presupuestos/<int:id>/editar', methods=['GET', 'POST'])
 def editar_presupuesto(id):
     p = Presupuesto.query.get_or_404(id)
-    if p.estado in ['aceptado', 'rechazado']:
-        return "Este presupuesto ya fue aceptado o rechazado y no se puede modificar.", 403
+    
+    # ════════════════════════════════════════════════════════════════════
+    # VALIDADOR INTELIGENTE DE EDICIÓN
+    # ════════════════════════════════════════════════════════════════════
+    if p.estado == 'rechazado':
+        return "Este presupuesto fue rechazado y no se puede modificar.", 403
+        
+    if p.estado == 'aceptado':
+        # Buscamos si el trabajo asociado a este presupuesto sigue activo en el taller
+        trabajo_asociado = Trabajo.query.filter(
+            Trabajo.presupuesto_id == p.id,
+            Trabajo.estado.in_(['en_curso', 'finalizado'])
+        ).first()
+        
+        # Si no encontramos un trabajo activo, significa que ya se entregó o anuló
+        if not trabajo_asociado:
+            return "No se puede editar este presupuesto porque el trabajo ya fue entregado o anulado.", 403
+    # ════════════════════════════════════════════════════════════════════
+
     clientes = Cliente.query.order_by(Cliente.empresa).all()
-    tipos_equipo = get_opciones('tipo_equipo')
-    tipos_trabajo = get_opciones('tipo_trabajo')
+    
     if request.method == 'POST':
-        p.cliente_id = request.form['cliente_id']
-        p.tipo_equipo = request.form.get('tipo_equipo')
-        p.identificador = request.form.get('identificador')
+        # Al guardar, modificamos EL MISMO presupuesto (p), manteniendo su ID original (#3)
+        p.cliente_id = int(request.form.get('cliente_id'))
         p.marca = request.form.get('marca')
         p.modelo = request.form.get('modelo')
+        p.identificador = request.form.get('identificador')
         p.tipo_trabajo = request.form.get('tipo_trabajo')
-        p.observaciones = request.form.get('observaciones')
-        p.estado = request.form.get('estado', p.estado)
-        for item in p.items:
-            db.session.delete(item)
+        
+        # Procesamos los items (repuestos/mano de obra) tal cual lo hace tu sistema actual
         descripciones = request.form.getlist('descripcion[]')
         cantidades = request.form.getlist('cantidad[]')
-        precios = request.form.getlist('precio[]')
-        descuentos = request.form.getlist('descuento[]')
-        total = 0
-        for desc, cant, precio, desc_pct in zip(descripciones, cantidades, precios, descuentos):
-            if desc.strip():
-                cant_f = float(cant or 1)
-                precio_f = float(precio or 0)
-                desc_f = float(desc_pct or 0)
-                sub = cant_f * precio_f * (1 - desc_f / 100)
-                total += sub
-                item = ItemPresupuesto(
+        precios = request.form.getlist('precio_unitario[]')
+        
+        # Limpiamos los items anteriores para sobreescribirlos
+        for item in p.items:
+            db.session.delete(item)
+            
+        total_general = 0
+        for i in range(len(descripciones)):
+            if descripciones[i].strip():
+                cant = float(cantidades[i]) if cantidades[i] else 1.0
+                precio = float(precios[i]) if precios[i] else 0.0
+                subtotal = cant * precio
+                total_general += subtotal
+                
+                nuevo_item = ItemPresupuesto(
                     presupuesto_id=p.id,
-                    descripcion=desc,
-                    cantidad=cant_f,
-                    precio_unitario=precio_f,
-                    descuento=desc_f,
-                    subtotal=sub
+                    descripcion=descripciones[i],
+                    cantidad=cant,
+                    precio_unitario=precio,
+                    subtotal=subtotal
                 )
-                db.session.add(item)
-        p.total = total
+                db.session.add(nuevo_item)
+        
+        p.total = total_general
+        
+        # ════════════════════════════════════════════════════════════════════
+        # AJUSTE AUTOMÁTICO DEL TRABAJO ACTIVO
+        # ════════════════════════════════════════════════════════════════════
+        # Si el presupuesto ya estaba aceptado, buscamos su trabajo en el taller
+        # y le actualizamos el campo 'presupuestado' con el nuevo valor real.
+        if p.estado == 'aceptado':
+            trabajo_taller = Trabajo.query.filter_by(presupuesto_id=p.id).first()
+            if trabajo_taller:
+                trabajo_taller.presupuestado = total_general
+                # Actualizamos también los datos del vehículo por si se corrigieron en el presupuesto
+                trabajo_taller.marca = p.marca
+                trabajo_taller.modelo = p.modelo
+                trabajo_taller.identificador = p.identificador
+                trabajo_taller.tipo_trabajo = p.tipo_trabajo
+        # ════════════════════════════════════════════════════════════════════
+        
         db.session.commit()
-        return redirect(url_for('presupuestos'))
-    return render_template('presupuesto_form.html', presupuesto=p,
-                           clientes=clientes, tipos_equipo=tipos_equipo, tipos_trabajo=tipos_trabajo)
+        return redirect(url_for('inicio'))
+        
+    return render_template('editar_presupuesto.html', presupuesto=p, clientes=clientes)
 
 @app.route('/presupuestos/<int:id>/estado', methods=['POST'])
 def cambiar_estado_presupuesto(id):
