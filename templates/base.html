@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Costa Taller Mecánico{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
@@ -180,6 +180,7 @@
         .badge-purple { background: #EEEDFE; color: #3C3489; }
 
         /* KPIs */
+        /* .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }*/
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
         .kpi { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
         .kpi-label { font-size: 11px; color: var(--text-light); margin-bottom: 6px; }
@@ -189,9 +190,7 @@
         .kpi-value.amber { color: #854F0B; }
         .kpi-value.blue { color: var(--blue); }
 
-        /* ═══════════════════════════════════════════════════════
-           DISEÑO BASE DE FILAS: OPTIMIZADO ORIGINAL PARA PC
-           ═══════════════════════════════════════════════════════ */
+        /* FILAS */
         .work-row {
             display: flex;
             align-items: center;
@@ -207,26 +206,12 @@
             transition: border-color 0.15s;
         }
         .work-row:hover { border-color: var(--blue); }
-        
-        /* Caja invisible nueva: En PC se comporta normal (apilado vertical) */
-        .work-row .linea-superior {
-            display: block;
-        }
-        .work-row .linea-superior .badge {
-            margin-bottom: 4px;
-        }
-
         .work-info { flex: 1; min-width: 0; }
         .work-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .work-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
         .work-amounts { text-align: right; flex-shrink: 0; }
         .work-total { font-size: 13px; font-weight: 600; color: var(--text); }
         .work-saldo { font-size: 11px; margin-top: 2px; }
-        
-        /* Flecha en PC (mantiene el flujo normal al final de la fila) */
-        .work-row i.ti-chevron-right {
-            font-size: 16px;
-        }
 
         /* FORMULARIOS */
         .form-grid { display: grid; gap: 12px; }
@@ -300,114 +285,17 @@
         .empty-state i { font-size: 40px; display: block; margin-bottom: 12px; opacity: 0.4; }
         .empty-state p { font-size: 14px; }
 
-        /* RESPONSIVE MÓVIL (Con Menú Desplegable) */
+        /* RESPONSIVE MÓVIL */
         @media (max-width: 768px) {
-            #menu-toggle { display: block !important; }
-
-            .sidebar { 
-                width: 100%; 
-                min-height: auto; 
-                position: absolute; 
-                top: 60px;          
-                left: 0;
-                flex-direction: column; 
-                display: none;      
-                z-index: 999;       
-                background: var(--sidebar-bg, #1A202C); 
-                border-bottom: 1px solid var(--border-color);
-            }
-
-            .sidebar.active {
-                display: flex !important;
-            }
-
+            .sidebar { width: 100%; min-height: auto; position: relative; flex-direction: column; }
             .main { margin-left: 0; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
             .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
             .content { padding: 12px; }
-            .topbar { padding: 0 12px; display: flex; align-items: center; }
+            .topbar { padding: 0 12px; }
+            .work-row { flex-wrap: wrap; }
             table { font-size: 12px; }
             th, td { padding: 6px 8px; }
-
-            /* ═══════════════════════════════════════════════════════
-               ESTRUCTURA DE TARJETA CORREGIDA PARA CELULAR
-               ═══════════════════════════════════════════════════════ */
-            .work-row, a.work-row { 
-                display: flex !important;
-                flex-direction: column !important; 
-                align-items: stretch !important; 
-                gap: 6px !important; 
-                padding: 12px 35px 12px 12px !important; 
-                position: relative !important; 
-            }
-
-            /* Forzamos al badge a comportarse en su propia línea arriba */
-            .work-row .badge {
-                display: inline-block !important;
-                align-self: flex-start !important;
-                width: auto !important;
-                padding: 4px 8px !important;
-                white-space: nowrap !important;
-                margin: 0 0 4px 0 !important;
-            }
-
-            /* Quitamos el comportamiento de bloque molesto en el celular */
-            .work-row .work-info {
-                display: block !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-
-            .work-row .work-name {
-                font-size: 14px !important;
-                font-weight: bold !important;
-                display: block !important;
-                white-space: normal !important;
-                overflow: visible !important;
-                margin-bottom: 2px !important;
-            }
-
-            .work-row .work-sub {
-                font-size: 11px !important;
-                color: var(--text-light, #718096) !important;
-                display: block !important;
-                margin: 0 !important;
-            }
-
-            /* Importe y Saldo en la misma línea abajo */
-            .work-row .work-amounts {
-                display: flex !important;
-                flex-direction: row !important; 
-                justify-content: flex-start !important; 
-                align-items: center !important;
-                gap: 16px !important; 
-                margin-top: 6px !important;
-                border-top: 1px dashed rgba(0,0,0,0.08) !important; 
-                padding-top: 6px !important;
-                text-align: left !important;
-            }
-
-            .work-row .work-total {
-                font-size: 13px !important;
-                font-weight: 600 !important;
-            }
-            
-            .work-row .work-saldo {
-                font-size: 12px !important;
-                margin-top: 0 !important;
-            }
-
-            /* Iconos fijos a la derecha (Flechita y Lápiz) */
-            .work-row i.ti-chevron-right,
-            .work-row i.ti-pencil { 
-                position: absolute !important;
-                right: 12px !important;
-                top: 50% !important;
-                transform: translateY(-50%) !important;
-                margin: 0 !important;
-                display: block !important;
-            }
         }
     </style>
 </head>
@@ -461,9 +349,6 @@
 
 <div class="main">
     <div class="topbar">
-        <button id="menu-toggle" class="btn btn-ghost" style="display: none; padding: 6px; margin-right: 10px;">
-            <i class="ti ti-menu-2" style="font-size: 24px;"></i>
-        </button>
         <span class="topbar-title">{% block topbar_title %}{% endblock %}</span>
         <div>{% block topbar_actions %}{% endblock %}</div>
     </div>
@@ -473,23 +358,4 @@
 </div>
 
 </body>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const menuToggle = document.getElementById('menu-toggle');
-        const sidebar = document.querySelector('.sidebar');
-
-        if (menuToggle && sidebar) {
-            menuToggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                sidebar.classList.toggle('active');
-            });
-
-            document.addEventListener('click', function(e) {
-                if (!sidebar.contains(e.target) && e.target !== menuToggle) {
-                    sidebar.classList.remove('active');
-                }
-            });
-        }
-    });
-</script>
 </html>

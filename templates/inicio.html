@@ -64,7 +64,6 @@
 {% if trabajos %}
     {% for t in trabajos %}
     <a href="/trabajos/{{ t.id }}" class="work-row">
-        
         {% if t.estado == 'en_curso' %}
             <span class="badge badge-amber">En curso</span>
         {% elif t.estado == 'finalizado' %}
