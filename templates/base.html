@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Costa Taller Mecánico{% endblock %}</title>
@@ -285,17 +286,57 @@
         .empty-state i { font-size: 40px; display: block; margin-bottom: 12px; opacity: 0.4; }
         .empty-state p { font-size: 14px; }
 
-        /* RESPONSIVE MÓVIL */
+        /* RESPONSIVE MÓVIL (Con Menú Desplegable) */
         @media (max-width: 768px) {
-            .sidebar { width: 100%; min-height: auto; position: relative; flex-direction: column; }
+            /* Mostramos el botón de tres rayitas en la barra superior */
+            #menu-toggle { display: block !important; }
+
+            /* El menú ahora arranca OCULTO por defecto en el celular */
+            .sidebar { 
+                width: 100%; 
+                min-height: auto; 
+                position: absolute; /* Para que flote sobre el contenido y no empuje nada */
+                top: 60px;          /* Ajustalo según la altura de tu topbar */
+                left: 0;
+                flex-direction: column; 
+                display: none;      /* Oculto */
+                z-index: 999;       /* Pasa por encima de todo */
+                background: var(--sidebar-bg, #1A202C); /* Forzamos fondo para que no sea transparente */
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            /* Cuando tocamos el botón, JS le agrega esta clase y el menú se MUESTRA */
+            .sidebar.active {
+                display: flex !important;
+            }
+
             .main { margin-left: 0; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
             .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
             .content { padding: 12px; }
-            .topbar { padding: 0 12px; }
-            .work-row { flex-wrap: wrap; }
+            .topbar { padding: 0 12px; display: flex; align-items: center; }
             table { font-size: 12px; }
             th, td { padding: 6px 8px; }
+
+            /* Filas de presupuestos en modo tarjeta vertical */
+            .work-row { 
+                flex-direction: column !important; 
+                align-items: flex-start !important; 
+                gap: 12px !important; 
+                padding: 12px !important; 
+            }
+            .work-row div[style*="display:flex"] {
+                width: 100% !important;
+                justify-content: flex-start !important;
+                gap: 8px !important;
+            }
+            .work-row .btn {
+                flex: 1 !important;
+                text-align: center !important;
+                padding: 8px 10px !important;
+                font-size: 12px !important;
+                justify-content: center !important;
+            }
         }
     </style>
 </head>
@@ -349,6 +390,9 @@
 
 <div class="main">
     <div class="topbar">
+        <button id="menu-toggle" class="btn btn-ghost" style="display: none; padding: 6px; margin-right: 10px;">
+            <i class="ti ti-menu-2" style="font-size: 24px;"></i>
+        </button>
         <span class="topbar-title">{% block topbar_title %}{% endblock %}</span>
         <div>{% block topbar_actions %}{% endblock %}</div>
     </div>
@@ -358,4 +402,24 @@
 </div>
 
 </body>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+
+        if (menuToggle && sidebar) {
+            menuToggle.addEventListener('click', function(e) {
+                e.stopPropagation(); // Evita que el clic se propague
+                sidebar.classList.toggle('active');
+            });
+
+            // Truco extra: Si tocan cualquier parte de la pantalla fuera del menú, se cierra solo
+            document.addEventListener('click', function(e) {
+                if (!sidebar.contains(e.target) && e.target !== menuToggle) {
+                    sidebar.classList.remove('active');
+                }
+            });
+        }
+    });
+    </script>
 </html>
