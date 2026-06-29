@@ -330,56 +330,59 @@
             th, td { padding: 6px 8px; }
 
             /* ═══════════════════════════════════════════════════════
-               COMPORTAMIENTO UNIFICADO PARA CELULARES (TRABAJOS Y PRESUPUESTOS)
+               ESTRUCTURA DE TARJETA CORREGIDA PARA CELULAR
                ═══════════════════════════════════════════════════════ */
             .work-row, a.work-row { 
                 display: flex !important;
                 flex-direction: column !important; 
                 align-items: stretch !important; 
-                gap: 8px !important; 
+                gap: 6px !important; 
                 padding: 12px 35px 12px 12px !important; 
                 position: relative !important; 
             }
 
-            /* Forzamos a que el Badge se quede arriba y ocupe solo su espacio */
+            /* Forzamos al badge a comportarse en su propia línea arriba */
             .work-row .badge {
+                display: inline-block !important;
                 align-self: flex-start !important;
                 width: auto !important;
                 padding: 4px 8px !important;
                 white-space: nowrap !important;
-                margin: 0 0 2px 0 !important;
+                margin: 0 0 4px 0 !important;
             }
 
+            /* Quitamos el comportamiento de bloque molesto en el celular */
             .work-row .work-info {
+                display: block !important;
                 width: 100% !important;
-                display: flex !important;
-                flex-direction: column !important;
-                gap: 4px !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
             .work-row .work-name {
                 font-size: 14px !important;
                 font-weight: bold !important;
-                white-space: normal !important; /* Permite quiebre si el nombre es largo */
+                display: block !important;
+                white-space: normal !important;
                 overflow: visible !important;
-                text-overflow: clip !important;
+                margin-bottom: 2px !important;
             }
 
             .work-row .work-sub {
                 font-size: 11px !important;
                 color: var(--text-light, #718096) !important;
                 display: block !important;
-                margin-top: 0 !important;
+                margin: 0 !important;
             }
 
-            /* Importe y Saldo uno al lado del otro abajo */
+            /* Importe y Saldo en la misma línea abajo */
             .work-row .work-amounts {
                 display: flex !important;
                 flex-direction: row !important; 
                 justify-content: flex-start !important; 
                 align-items: center !important;
                 gap: 16px !important; 
-                margin-top: 4px !important;
+                margin-top: 6px !important;
                 border-top: 1px dashed rgba(0,0,0,0.08) !important; 
                 padding-top: 6px !important;
                 text-align: left !important;
@@ -395,7 +398,7 @@
                 margin-top: 0 !important;
             }
 
-            /* La Flecha / Lápiz clavados a la derecha al medio */
+            /* Iconos fijos a la derecha (Flechita y Lápiz) */
             .work-row i.ti-chevron-right,
             .work-row i.ti-pencil { 
                 position: absolute !important;
@@ -403,6 +406,7 @@
                 top: 50% !important;
                 transform: translateY(-50%) !important;
                 margin: 0 !important;
+                display: block !important;
             }
         }
     </style>
