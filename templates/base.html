@@ -333,38 +333,39 @@
             }
 
             /* LINEA 1: Forzamos a que el Badge y Ramón compartan el mismo renglón horizontal */
-            .work-row .work-info {
-                width: 100% !important;
+            .work-row {
+                /* Asegura que el contenido se alinee horizontalmente al principio */
                 display: flex !important;
-                flex-direction: column !important;
-                gap: 6px !important;
             }
 
-            /* Creamos un comportamiento horizontal para los primeros elementos */
+            /* Forzamos al Badge a que sea chiquito, flote a la izquierda y NO ocupe el ancho completo */
             .work-row .badge {
-                display: inline-flex !important;
-                align-items: center !important;
+                display: inline-block !important;
+                width: auto !important; /* Evita que se estire al 100% */
+                max-width: fit-content !important;
+                float: left !important;
+                margin-right: 12px !important; /* Separa el badge del nombre de Ramón */
                 margin-bottom: 0 !important;
-                margin-right: 10px !important; /* Separación con el nombre */
+                padding: 4px 8px !important;
+                white-space: nowrap !important;
             }
 
-            /* Modificamos el contenedor del cliente para que suba al lado del badge si tu HTML los tiene juntos, 
-               o forzamos a que el texto de Ramón se alinee de forma fluida */
+            /* Forzamos al contenedor de texto a ponerse al lado del badge en la misma línea */
+            .work-row .work-info {
+                display: inline-flex !important;
+                flex-direction: row !important; /* Se ponen en la misma fila */
+                flex-wrap: wrap !important; /* Si los detalles de abajo son largos, caen al siguiente renglón */
+                align-items: center !important;
+                gap: 10px !important;
+                width: auto !important;
+            }
+
+            /* El nombre de Ramón se acopla en la misma línea horizontal */
             .work-row .work-name {
                 font-size: 14px !important;
                 display: inline-block !important;
                 margin: 0 !important;
-                vertical-align: middle !important;
-            }
-
-            /* Si en tu HTML el badge y el nombre están sueltos, esto los obliga a agruparse en la primera línea */
-            .work-row > *:first-child, 
-            .work-row .work-info > *:first-child {
-                display: flex !important;
-                flex-direction: row !important;
-                align-items: center !important;
-                flex-wrap: wrap !important;
-                gap: 8px !important;
+                font-weight: bold !important;
             }
 
             /* LINEA 2: Detalles en gris (REP-0008...) */
