@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Costa Taller Mecánico{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <title>Costa Mecánica Integral</title>
+<link rel="icon" type="image/png" href="/static/Isotipo.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -125,6 +126,8 @@
             z-index: 50;
         }
 
+        #menu-toggle { display: none; } /* Oculto en PC por defecto */
+
         .topbar-title { font-size: 15px; font-weight: 600; color: var(--text); }
         .content { padding: 24px; flex: 1; }
 
@@ -180,7 +183,6 @@
         .badge-purple { background: #EEEDFE; color: #3C3489; }
 
         /* KPIs */
-        /* .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }*/
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
         .kpi { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
         .kpi-label { font-size: 11px; color: var(--text-light); margin-bottom: 6px; }
@@ -287,12 +289,38 @@
 
         /* RESPONSIVE MÓVIL */
         @media (max-width: 768px) {
-            .sidebar { width: 100%; min-height: auto; position: relative; flex-direction: column; }
+            #menu-toggle { display: block !important; }
+            
+            .sidebar { 
+                width: 100%; 
+                min-height: auto; 
+                position: absolute; /* Cortina flotante */
+                top: 54px;          /* Pegado abajo del topbar */
+                left: 0; 
+                flex-direction: column; 
+                display: none;      /* Oculto hasta que se active */
+                z-index: 999;
+                border-bottom: 2px solid var(--amber);
+            }
+            
+            /* Esta clase la inyecta el JS al tocar el botón */
+            .sidebar.active { 
+                display: flex !important; 
+            }
+
             .main { margin-left: 0; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
             .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
             .content { padding: 12px; }
-            .topbar { padding: 0 12px; }
+            
+            .topbar { 
+                padding: 0 12px; 
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 4px;
+            }
+            
             .work-row { flex-wrap: wrap; }
             table { font-size: 12px; }
             th, td { padding: 6px 8px; }
@@ -354,13 +382,38 @@
 
 <div class="main">
     <div class="topbar">
+        <button id="menu-toggle" class="btn btn-ghost" style="padding: 6px; margin-right: 10px; border: none;">
+            <i class="ti ti-menu-2" style="font-size: 24px; color: var(--navy);"></i>
+        </button>
         <span class="topbar-title">{% block topbar_title %}{% endblock %}</span>
-        <div>{% block topbar_actions %}{% endblock %}</div>
+        <div style="margin-left: auto;">{% block topbar_actions %}{% endblock %}</div>
     </div>
     <div class="content">
         {% block content %}{% endblock %}
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+
+        if (menuToggle && sidebar) {
+            // Abre o cierra al hacer clic en el botón de hamburguesa
+            menuToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('active');
+            });
+
+            // Cierra automáticamente si tocas en cualquier otra parte de la pantalla
+            document.addEventListener('click', function(e) {
+                if (!sidebar.contains(e.target) && e.target !== menuToggle) {
+                    sidebar.classList.remove('active');
+                }
+            });
+        }
+    });
+</script>
 
 </body>
 </html>
