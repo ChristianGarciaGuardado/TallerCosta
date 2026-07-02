@@ -25,6 +25,7 @@ if DATABASE_URL.startswith('postgres://'):
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'taller_costa_2025'
+PASSWORD = 'costa2026'
 
 db = SQLAlchemy(app)
 
@@ -200,6 +201,39 @@ def seed_opciones():
         db.session.commit()
 
 app.jinja_env.filters['moneda'] = fmt_moneda
+
+# ═══════════════════════════════════════════════════════
+# RUTAS — AUTENTICACIÓN
+# ═══════════════════════════════════════════════════════
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Pantalla de login con contraseña única"""
+    error = None
+    if request.method == 'POST':
+        if request.form['password'] == PASSWORD:
+            session['autenticado'] = True
+            return redirect(url_for('inicio'))
+        else:
+            error = 'Contraseña incorrecta'
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    """Cierra la sesión"""
+    session.pop('autenticado', None)
+    return redirect(url_for('login'))
+
+# Reemplazamos "requiere_login" por este interceptor automático
+@app.before_request
+def verificar_autenticacion():
+    """Protege todas las rutas de la app automáticamente"""
+    # Si ya está autenticado, o va al login, o pide archivos estáticos (CSS/Imágenes), lo dejamos pasar
+    if session.get('autenticado') or request.endpoint in ['login', 'static']:
+        return None
+    
+    # Si no, lo mandamos al login de prepo
+    return redirect(url_for('login'))
 
 # ═══════════════════════════════════════════════════════
 # RUTAS — INICIO
@@ -1086,12 +1120,13 @@ def exportar_excel():
 
     # ── Hoja Gastos Generales ──────────────────────────
     ws5 = wb.create_sheet("Gastos Generales")
-    headers5 = ['ID', 'Fecha', 'Categoría', 'Proveedor', 'Monto', 'Forma Pago', 'Comprobante']
+    headers5 = ['ID', 'Fecha', 'Categoría', 'Proveedor', 'Monto', 'Forma Pago', 'Comprobante', 'Anulado']
     for ci, h in enumerate(headers5, 1):
-        hdr_style(ws5.cell(1, ci), h)
+    hdr_style(ws5.cell(1, ci), h)
     for g in GastoGeneral.query.order_by(GastoGeneral.fecha.desc()).all():
-        ws5.append([g.id, g.fecha.strftime('%d/%m/%Y'), g.categoria,
-                    g.proveedor, g.monto, g.forma_pago, g.comprobante])
+    ws5.append([g.id, g.fecha.strftime('%d/%m/%Y'), g.categoria,
+                g.proveedor, g.monto, g.forma_pago, g.comprobante,
+                'Sí' if g.anulado else 'No'])
 
     # ── Hoja Cobranzas ─────────────────────────────────
     ws6 = wb.create_sheet("Cobranzas")
