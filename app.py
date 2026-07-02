@@ -1122,9 +1122,9 @@ def exportar_excel():
     ws5 = wb.create_sheet("Gastos Generales")
     headers5 = ['ID', 'Fecha', 'Categoría', 'Proveedor', 'Monto', 'Forma Pago', 'Comprobante', 'Anulado']
     for ci, h in enumerate(headers5, 1):
-    hdr_style(ws5.cell(1, ci), h)
+        hdr_style(ws5.cell(1, ci), h)
     for g in GastoGeneral.query.order_by(GastoGeneral.fecha.desc()).all():
-    ws5.append([g.id, g.fecha.strftime('%d/%m/%Y'), g.categoria,
+        ws5.append([g.id, g.fecha.strftime('%d/%m/%Y'), g.categoria,
                 g.proveedor, g.monto, g.forma_pago, g.comprobante,
                 'Sí' if g.anulado else 'No'])
 
