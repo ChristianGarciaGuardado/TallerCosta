@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión — Costa Taller Mecánico</title>
+    <title>Costa Mecánica Integral</title>
+    <link rel="icon" type="image/png" href="/static/Isotipo.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
         * {
@@ -52,6 +53,9 @@
         .login-header {
             text-align: center;
             margin-bottom: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Esto fuerza a que la imagen se mueva al centro perfecto */
         }
 
         .login-logo {
@@ -172,11 +176,8 @@
     <div class="login-container">
         
         <div class="login-header">
-            <div class="login-logo">
-                <i class="ti ti-settings-automation"></i>
-            </div>
-            <h1>COSTA</h1>
-            <p>Mecánica Integral</p>
+            <img src="/static/Logo.png" alt="Logo Costa" style="width: 250px; height: px; object-fit: contain; margin-bottom: 12px; border-radius: 6px;">
+            
         </div>
 
         {% if error %}
