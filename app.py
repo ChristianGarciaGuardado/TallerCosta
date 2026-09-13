@@ -25,6 +25,7 @@ if DATABASE_URL.startswith('postgres://'):
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'taller_costa_2025'
+app.permanent_session_lifetime = timedelta(hours=1)
 PASSWORD = 'costa2026'
 
 db = SQLAlchemy(app)
@@ -212,6 +213,7 @@ def login():
     error = None
     if request.method == 'POST':
         if request.form['password'] == PASSWORD:
+            session.permanent = True
             session['autenticado'] = True
             return redirect(url_for('inicio'))
         else:
@@ -448,7 +450,10 @@ def nuevo_presupuesto():
 def editar_presupuesto(id):
     """Edición inteligente de presupuestos pendientes o ampliaciones en taller"""
     p = Presupuesto.query.get_or_404(id)
-    
+
+    if p.trabajo and p.trabajo.estado in ['finalizado', 'entregado']:
+        return redirect(url_for('presupuestos'))
+
     # ════════════════════════════════════════════════════════════════════
     # VALIDADOR INTELIGENTE DE EDICIÓN
     # ════════════════════════════════════════════════════════════════════
@@ -1098,7 +1103,8 @@ def exportar_excel():
     ws3 = wb.create_sheet("Trabajos")
     headers3 = ['ID', 'Número', 'Cliente', 'Tipo Equipo', 'Identificador', 'Marca',
                 'Modelo', 'Tipo Trabajo', 'Estado', 'Presupuestado', 'Cobrado',
-                'Saldo', 'Gastos', 'Ganancia', 'F. Ingreso', 'F. Entrega']
+                'Saldo', 'Gastos', 'Ganancia', 'F. Ingreso', 'F. Entrega',
+                'N° Presupuesto', 'Observaciones']
     for ci, h in enumerate(headers3, 1):
         hdr_style(ws3.cell(1, ci), h)
     for t in Trabajo.query.order_by(Trabajo.creado.desc()).all():
@@ -1106,7 +1112,8 @@ def exportar_excel():
                     t.marca, t.modelo, t.tipo_trabajo, t.estado, t.presupuestado,
                     t.total_cobrado, t.saldo, t.total_gastos, t.ganancia,
                     t.fecha_ingreso.strftime('%d/%m/%Y') if t.fecha_ingreso else '',
-                    t.fecha_entrega.strftime('%d/%m/%Y') if t.fecha_entrega else ''])
+                    t.fecha_entrega.strftime('%d/%m/%Y') if t.fecha_entrega else '',
+                    t.presupuesto.numero if t.presupuesto else '', t.observaciones or ''])
 
     # ── Hoja Gastos ────────────────────────────────────
     ws4 = wb.create_sheet("Gastos")
