@@ -169,7 +169,12 @@
                     </div>
                     <div class="field">
                         <label>Proveedor</label>
-                        <input type="text" name="proveedor" placeholder="Opcional">
+                        <select name="proveedor">
+                            <option value="">Seleccionar...</option>
+                            {% for prov in proveedores %}
+                            <option>{{ prov.nombre }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="field">
                         <label>Monto ($) *</label>

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Proveedores{% endblock %}
+{% block topbar_title %}Proveedores{% endblock %}
+{% block topbar_actions %}
+<a href="/proveedores/nuevo" class="btn btn-primary"><i class="ti ti-plus"></i> Nuevo proveedor</a>
+{% endblock %}
+{% block content %}
+
+<form method="get" class="filter-bar">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar proveedor..." style="flex:1">
+    <button type="submit" class="btn btn-ghost"><i class="ti ti-search"></i> Buscar</button>
+</form>
+
+{% if proveedores %}
+    {% for p in proveedores %}
+    <div class="work-row" style="align-items:flex-start">
+        <div style="width:38px;height:38px;border-radius:50%;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--navy);flex-shrink:0">
+            {{ p.nombre[:2].upper() }}
+        </div>
+        <div class="work-info">
+            <div class="work-name">{{ p.nombre }}</div>
+            <div class="work-sub">
+                {% if p.telefono %}{{ p.telefono }}{% endif %}
+                {% if p.email %} &bull; {{ p.email }}{% endif %}
+            </div>
+        </div>
+        <div style="display:flex;gap:6px">
+            <a href="/proveedores/{{ p.id }}/editar" class="btn btn-ghost btn-sm">
+                <i class="ti ti-pencil"></i>
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="ti ti-truck-delivery"></i>
+        <p>No hay proveedores registrados.</p>
+        <a href="/proveedores/nuevo" class="btn btn-primary" style="margin-top:16px">Agregar proveedor</a>
+    </div>
+{% endif %}
+
+{% endblock %}

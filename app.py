@@ -48,6 +48,18 @@ class Cliente(db.Model):
     presupuestos = db.relationship('Presupuesto', backref='cliente', lazy=True)
     trabajos = db.relationship('Trabajo', backref='cliente', lazy=True)
 
+class Proveedor(db.Model):
+    """Proveedores del taller"""
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    contacto = db.Column(db.String(100))
+    telefono = db.Column(db.String(30))
+    email = db.Column(db.String(100))
+    direccion = db.Column(db.String(200))
+    cuit = db.Column(db.String(20))
+    notas = db.Column(db.Text)
+    creado = db.Column(db.DateTime, default=hora_argentina)
+
 class Presupuesto(db.Model):
     """Presupuestos generados para clientes"""
     id = db.Column(db.Integer, primary_key=True)
@@ -362,6 +374,51 @@ def editar_cliente(id):
         db.session.commit()
         return redirect(url_for('clientes'))
     return render_template('cliente_form.html', cliente=c)
+
+# ═══════════════════════════════════════════════════════
+# RUTAS — PROVEEDORES
+# ═══════════════════════════════════════════════════════
+
+@app.route('/proveedores')
+def proveedores():
+    q = request.args.get('q', '')
+    if q:
+        lista = Proveedor.query.filter(Proveedor.nombre.ilike(f'%{q}%')).order_by(Proveedor.nombre).all()
+    else:
+        lista = Proveedor.query.order_by(Proveedor.nombre).all()
+    return render_template('proveedores.html', proveedores=lista, q=q)
+
+@app.route('/proveedores/nuevo', methods=['GET', 'POST'])
+def nuevo_proveedor():
+    if request.method == 'POST':
+        p = Proveedor(
+            nombre=request.form['nombre'],
+            contacto=request.form.get('contacto'),
+            telefono=request.form.get('telefono'),
+            email=request.form.get('email'),
+            direccion=request.form.get('direccion'),
+            cuit=request.form.get('cuit'),
+            notas=request.form.get('notas')
+        )
+        db.session.add(p)
+        db.session.commit()
+        return redirect(url_for('proveedores'))
+    return render_template('proveedor_form.html', proveedor=None)
+
+@app.route('/proveedores/<int:id>/editar', methods=['GET', 'POST'])
+def editar_proveedor(id):
+    p = Proveedor.query.get_or_404(id)
+    if request.method == 'POST':
+        p.nombre = request.form['nombre']
+        p.contacto = request.form.get('contacto')
+        p.telefono = request.form.get('telefono')
+        p.email = request.form.get('email')
+        p.direccion = request.form.get('direccion')
+        p.cuit = request.form.get('cuit')
+        p.notas = request.form.get('notas')
+        db.session.commit()
+        return redirect(url_for('proveedores'))
+    return render_template('proveedor_form.html', proveedor=p)
 
 # ═══════════════════════════════════════════════════════════════════════
 # RUTAS — PRESUPUESTOS (CONSOLIDADO Y SEGURO)
@@ -867,8 +924,10 @@ def detalle_trabajo(id):
     t = Trabajo.query.get_or_404(id)
     categorias = get_opciones('categoria_gasto')
     formas_pago = get_opciones('forma_pago')
+    proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
     return render_template('detalle_trabajo.html', trabajo=t,
-                           categorias=categorias, formas_pago=formas_pago)
+                           categorias=categorias, formas_pago=formas_pago,
+                           proveedores=proveedores)
 
 @app.route('/trabajos/<int:id>/estado', methods=['POST'])
 def cambiar_estado_trabajo(id):
@@ -1014,8 +1073,10 @@ def gastos_generales():
         db.session.commit()
         return redirect(url_for('gastos_generales'))
     lista = GastoGeneral.query.order_by(GastoGeneral.fecha.desc()).limit(50).all()
+    proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
     return render_template('gastos_generales.html', gastos=lista,
-                           categorias=categorias, formas_pago=formas_pago)
+                           categorias=categorias, formas_pago=formas_pago,
+                           proveedores=proveedores)
 
 @app.route('/gastos-generales/<int:id>/anular', methods=['POST'])
 def anular_gasto_general(id):
@@ -1133,6 +1194,14 @@ def exportar_excel():
         hdr_style(ws.cell(1, ci), h)
     for c in Cliente.query.order_by(Cliente.empresa).all():
         ws.append([c.id, c.empresa, c.contacto, c.telefono, c.email, c.direccion, c.cuit])
+
+    # ── Hoja Proveedores ────────────────────────────────
+    wsp = wb.create_sheet("Proveedores")
+    headersp = ['ID', 'Nombre', 'Contacto', 'Teléfono', 'Email', 'Dirección', 'CUIT']
+    for ci, h in enumerate(headersp, 1):
+        hdr_style(wsp.cell(1, ci), h)
+    for pr in Proveedor.query.order_by(Proveedor.nombre).all():
+        wsp.append([pr.id, pr.nombre, pr.contacto, pr.telefono, pr.email, pr.direccion, pr.cuit])
 
     # ── Hoja Presupuestos ──────────────────────────────
     ws2 = wb.create_sheet("Presupuestos")
