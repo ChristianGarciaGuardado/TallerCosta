@@ -1274,6 +1274,50 @@ def exportar_excel():
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 # ═══════════════════════════════════════════════════════
+# RUTA TEMPORAL — Reseteo único de datos antes de arrancar
+# ELIMINAR ESTA RUTA DESPUÉS DE USARLA UNA VEZ
+# ═══════════════════════════════════════════════════════
+
+@app.route('/admin/reset-datos', methods=['GET', 'POST'])
+def admin_reset_datos():
+    """Herramienta temporal para vaciar los datos operativos antes de empezar a usar la app en serio.
+    Mantiene las listas de configuración (tipo_equipo, tipo_trabajo, categoria_gasto, forma_pago)."""
+    conteos = {
+        'Clientes': Cliente.query.count(),
+        'Proveedores': Proveedor.query.count(),
+        'Presupuestos': Presupuesto.query.count(),
+        'Trabajos': Trabajo.query.count(),
+        'Gastos de trabajo': GastoTrabajo.query.count(),
+        'Gastos generales': GastoGeneral.query.count(),
+        'Cobros': Cobro.query.count(),
+    }
+
+    if request.method == 'POST':
+        if request.form.get('confirmar') != 'BORRAR TODO':
+            return "Confirmación incorrecta. Escribí exactamente: BORRAR TODO", 400
+        Cobro.query.delete()
+        GastoTrabajo.query.delete()
+        ItemPresupuesto.query.delete()
+        Trabajo.query.delete()
+        Presupuesto.query.delete()
+        GastoGeneral.query.delete()
+        Proveedor.query.delete()
+        Cliente.query.delete()
+        db.session.commit()
+        return "Listo. Se borraron todos los datos operativos. Las listas de configuración se mantuvieron."
+
+    filas = "".join(f"<li>{k}: {v}</li>" for k, v in conteos.items())
+    return f"""
+    <h3>Vaciar base de datos</h3>
+    <ul>{filas}</ul>
+    <form method="post">
+        <p>Escribí <b>BORRAR TODO</b> para confirmar:</p>
+        <input type="text" name="confirmar">
+        <button type="submit">Confirmar borrado</button>
+    </form>
+    """
+
+# ═══════════════════════════════════════════════════════
 # INICIO — Crear tablas y cargar datos por defecto
 # ═══════════════════════════════════════════════════════
 
