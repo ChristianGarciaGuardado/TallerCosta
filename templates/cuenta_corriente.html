@@ -33,19 +33,19 @@
                 <div>
                     <div style="font-size:11px;color:var(--text-light)">Total presupuestado</div>
                     <div style="font-size:16px;font-weight:600">
-                        {{ trabajos | sum(attribute='presupuestado') | int | moneda }}
+                        {{ total_presupuestado | int | moneda }}
                     </div>
                 </div>
                 <div>
                     <div style="font-size:11px;color:var(--text-light)">Total cobrado</div>
                     <div style="font-size:16px;font-weight:600;color:var(--green)">
-                        {{ trabajos | sum(attribute='total_cobrado') | int | moneda }}
+                        {{ total_cobrado | int | moneda }}
                     </div>
                 </div>
                 <div>
                     <div style="font-size:11px;color:var(--text-light)">Saldo total</div>
                     <div style="font-size:16px;font-weight:600;color:var(--red)">
-                        {{ trabajos | sum(attribute='saldo') | int | moneda }}
+                        {{ total_saldo | int | moneda }}
                     </div>
                 </div>
             </div>
@@ -61,6 +61,7 @@
                 <div style="display:flex;align-items:center;gap:10px">
                     {% if t.estado == 'en_curso' %}<span class="badge badge-amber">En curso</span>
                     {% elif t.estado == 'finalizado' %}<span class="badge badge-red">Finalizado</span>
+                    {% elif t.estado == 'anulado' %}<span class="badge badge-gray">Anulado</span>
                     {% else %}<span class="badge badge-green">Entregado</span>{% endif %}
                     <div>
                         <div style="font-size:13px;font-weight:600">

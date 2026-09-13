@@ -290,13 +290,15 @@ def inicio():
     # KPI NUEVO: Gastos del período (Corregido con los nombres reales de tus modelos)
     gastos_generales_del_periodo = GastoGeneral.query.filter(
         db.func.date(GastoGeneral.fecha) >= fecha_desde,
-        db.func.date(GastoGeneral.fecha) <= fecha_hasta
+        db.func.date(GastoGeneral.fecha) <= fecha_hasta,
+        GastoGeneral.anulado == False
     ).all()
     total_gastos_generales = sum(g.monto for g in gastos_generales_del_periodo)
 
-    gastos_trabajos_del_periodo = GastoTrabajo.query.filter(
+    gastos_trabajos_del_periodo = GastoTrabajo.query.join(Trabajo).filter(
         db.func.date(GastoTrabajo.fecha) >= fecha_desde,
-        db.func.date(GastoTrabajo.fecha) <= fecha_hasta
+        db.func.date(GastoTrabajo.fecha) <= fecha_hasta,
+        Trabajo.estado != 'anulado'
     ).all()
     total_gastos_trabajos = sum(gt.monto for gt in gastos_trabajos_del_periodo)
 
@@ -535,11 +537,45 @@ def editar_presupuesto(id):
         db.session.commit()
         return redirect(url_for('presupuestos'))
         
-    return render_template('presupuesto_form.html', 
-                           presupuesto=p, 
-                           clientes=clientes, 
-                           tipos_equipo=tipos_equipo, 
+    return render_template('presupuesto_form.html',
+                           presupuesto=p,
+                           clientes=clientes,
+                           tipos_equipo=tipos_equipo,
                            tipos_trabajo=tipos_trabajo)
+
+
+@app.route('/presupuestos/<int:id>/convertir', methods=['GET', 'POST'])
+def convertir_presupuesto(id):
+    """Convierte un presupuesto pendiente en un trabajo activo del taller"""
+    p = Presupuesto.query.get_or_404(id)
+
+    if p.estado not in ['borrador', 'enviado']:
+        return redirect(url_for('presupuestos'))
+
+    if request.method == 'POST':
+        fecha_ingreso_str = request.form.get('fecha_ingreso')
+        fecha_ingreso = (datetime.strptime(fecha_ingreso_str, '%Y-%m-%d').date()
+                          if fecha_ingreso_str else date.today())
+
+        t = Trabajo(
+            numero=gen_numero_trabajo(),
+            cliente_id=p.cliente_id,
+            presupuesto_id=p.id,
+            tipo_equipo=p.tipo_equipo,
+            identificador=p.identificador,
+            marca=p.marca,
+            modelo=p.modelo,
+            tipo_trabajo=p.tipo_trabajo,
+            observaciones=request.form.get('observaciones'),
+            presupuestado=p.total,
+            fecha_ingreso=fecha_ingreso
+        )
+        db.session.add(t)
+        p.estado = 'aceptado'
+        db.session.commit()
+        return redirect(url_for('presupuestos'))
+
+    return render_template('convertir.html', presupuesto=p, today=date.today().isoformat())
 
 
 @app.route('/presupuestos/<int:id>/estado', methods=['POST'])
@@ -909,12 +945,18 @@ def cuenta_corriente():
     formas_pago = get_opciones('forma_pago')
     cliente_sel = None
     trabajos = []
+    total_presupuestado = total_cobrado = total_saldo = 0
     if cliente_id:
         cliente_sel = Cliente.query.get(cliente_id)
         trabajos = Trabajo.query.filter_by(cliente_id=cliente_id).order_by(Trabajo.creado.desc()).all()
+        trabajos_validos = [t for t in trabajos if t.estado != 'anulado']
+        total_presupuestado = sum(t.presupuestado for t in trabajos_validos)
+        total_cobrado = sum(t.total_cobrado for t in trabajos_validos)
+        total_saldo = sum(t.saldo for t in trabajos_validos)
     return render_template('cuenta_corriente.html',
         clientes=clientes, cliente_sel=cliente_sel,
-        trabajos=trabajos, cliente_id=cliente_id, formas_pago=formas_pago)
+        trabajos=trabajos, cliente_id=cliente_id, formas_pago=formas_pago,
+        total_presupuestado=total_presupuestado, total_cobrado=total_cobrado, total_saldo=total_saldo)
 
 # ═══════════════════════════════════════════════════════
 # RUTAS — HISTORIAL
@@ -993,7 +1035,8 @@ def resultados():
     anio = int(request.args.get('anio', date.today().year))
     trabajos_mes = Trabajo.query.filter(
         db.extract('month', Trabajo.fecha_ingreso) == mes,
-        db.extract('year', Trabajo.fecha_ingreso) == anio
+        db.extract('year', Trabajo.fecha_ingreso) == anio,
+        Trabajo.estado != 'anulado'
     ).all()
     ventas = sum(t.presupuestado for t in trabajos_mes)
     cobros = Cobro.query.filter(
@@ -1001,10 +1044,13 @@ def resultados():
         db.extract('year', Cobro.fecha) == anio
     ).all()
     cobrado = sum(c.monto for c in cobros)
-    saldo_total = sum(t.saldo for t in Trabajo.query.filter(Trabajo.estado != 'entregado').all())
-    gastos_trabajos = GastoTrabajo.query.filter(
+    saldo_total = sum(t.saldo for t in Trabajo.query.filter(
+        Trabajo.estado.notin_(['entregado', 'anulado'])
+    ).all())
+    gastos_trabajos = GastoTrabajo.query.join(Trabajo).filter(
         db.extract('month', GastoTrabajo.fecha) == mes,
-        db.extract('year', GastoTrabajo.fecha) == anio
+        db.extract('year', GastoTrabajo.fecha) == anio,
+        Trabajo.estado != 'anulado'
     ).all()
     gastos_gen = GastoGeneral.query.filter(
     db.extract('month', GastoGeneral.fecha) == mes,
