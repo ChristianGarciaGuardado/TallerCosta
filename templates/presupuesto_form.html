@@ -132,11 +132,30 @@
 
         <hr class="divider">
 
-        <div class="field" style="max-width:220px">
-            <label>Descuento general (%)</label>
-            <input type="number" id="descuento-general" name="descuento_general" min="0" max="100" step="0.1"
-                   value="{{ presupuesto.descuento if presupuesto and presupuesto.descuento else 0 }}"
-                   oninput="updateTotal()">
+        <div class="field" style="max-width:260px">
+            <label>Descuento general</label>
+            <div style="display:flex;gap:16px;margin-bottom:8px">
+                <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;color:var(--text);cursor:pointer">
+                    <input type="radio" name="descuento_tipo" value="porcentaje"
+                           {% if not presupuesto or presupuesto.descuento_tipo != 'monto' %}checked{% endif %}
+                           onchange="toggleTipoDescuento(this)">
+                    Porcentual (%)
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;color:var(--text);cursor:pointer">
+                    <input type="radio" name="descuento_tipo" value="monto"
+                           {% if presupuesto and presupuesto.descuento_tipo == 'monto' %}checked{% endif %}
+                           onchange="toggleTipoDescuento(this)">
+                    Monto fijo ($)
+                </label>
+            </div>
+            <input type="number" id="descuento-porcentaje" name="descuento_porcentaje" min="0" max="100" step="0.1"
+                   value="{{ presupuesto.descuento if presupuesto and presupuesto.descuento and presupuesto.descuento_tipo != 'monto' else 0 }}"
+                   oninput="updateTotal()"
+                   style="{% if presupuesto and presupuesto.descuento_tipo == 'monto' %}display:none{% endif %}">
+            <input type="number" id="descuento-monto" name="descuento_monto_input" min="0" step="0.01"
+                   value="{{ presupuesto.descuento if presupuesto and presupuesto.descuento and presupuesto.descuento_tipo == 'monto' else 0 }}"
+                   oninput="updateTotal()"
+                   style="{% if not presupuesto or presupuesto.descuento_tipo != 'monto' %}display:none{% endif %}">
         </div>
 
         <div id="resumen-subtotal" class="mini-row" style="display:none">
@@ -195,16 +214,31 @@ function updateTotal() {
         subtotal += cant * precio;
     });
 
-    const descPct = parseFloat(document.getElementById('descuento-general').value) || 0;
-    const descMonto = subtotal * (descPct / 100);
+    const tipoDescuento = document.querySelector('input[name="descuento_tipo"]:checked').value;
+    let descMonto = 0;
+    if (tipoDescuento === 'monto') {
+        descMonto = parseFloat(document.getElementById('descuento-monto').value) || 0;
+    } else {
+        const descPct = parseFloat(document.getElementById('descuento-porcentaje').value) || 0;
+        descMonto = subtotal * (descPct / 100);
+    }
+    if (descMonto > subtotal) descMonto = subtotal;
+    if (descMonto < 0) descMonto = 0;
     const total = subtotal - descMonto;
 
-    const hayDescuento = descPct > 0;
+    const hayDescuento = descMonto > 0;
     document.getElementById('resumen-subtotal').style.display = hayDescuento ? 'flex' : 'none';
     document.getElementById('resumen-descuento').style.display = hayDescuento ? 'flex' : 'none';
     document.getElementById('subtotal-display').textContent = fmt(subtotal);
     document.getElementById('descuento-monto-display').textContent = '-' + fmt(descMonto);
     document.getElementById('total-display').textContent = fmt(total);
+}
+
+function toggleTipoDescuento(radio) {
+    const esPorcentaje = radio.value === 'porcentaje';
+    document.getElementById('descuento-porcentaje').style.display = esPorcentaje ? 'block' : 'none';
+    document.getElementById('descuento-monto').style.display = esPorcentaje ? 'none' : 'block';
+    updateTotal();
 }
 
 function addItem() {

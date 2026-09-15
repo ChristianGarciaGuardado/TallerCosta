@@ -73,7 +73,8 @@ class Presupuesto(db.Model):
     observaciones = db.Column(db.Text)
     estado = db.Column(db.String(20), default='borrador')  # borrador, enviado, aceptado, rechazado
     total = db.Column(db.Float, default=0)
-    descuento = db.Column(db.Float, default=0)  # % de descuento general sobre el subtotal de items
+    descuento = db.Column(db.Float, default=0)  # valor ingresado: % si descuento_tipo='porcentaje', $ si 'monto'
+    descuento_tipo = db.Column(db.String(20), default='porcentaje')  # 'porcentaje' | 'monto'
     creado = db.Column(db.DateTime, default=hora_argentina)
     items = db.relationship('ItemPresupuesto', backref='presupuesto', lazy=True, cascade='all, delete-orphan')
     trabajo = db.relationship('Trabajo', backref='presupuesto', lazy=True, uselist=False)
@@ -184,6 +185,20 @@ def gen_numero_trabajo():
     ultimo = Trabajo.query.order_by(Trabajo.id.desc()).first()
     n = (ultimo.id + 1) if ultimo else 1
     return f"REP-{n:04d}"
+
+def calcular_descuento(request_form, subtotal):
+    """Lee el descuento del formulario de presupuesto (porcentual o monto fijo)
+    y devuelve (tipo, valor_ingresado, monto_descuento) ya acotado al subtotal."""
+    tipo = request_form.get('descuento_tipo', 'porcentaje')
+    if tipo == 'monto':
+        valor = float(request_form.get('descuento_monto_input') or 0)
+        monto = valor
+    else:
+        tipo = 'porcentaje'
+        valor = float(request_form.get('descuento_porcentaje') or 0)
+        monto = subtotal * (valor / 100)
+    monto = max(0, min(monto, subtotal))
+    return tipo, valor, monto
 
 def fmt_moneda(valor):
     """Formatea un número como moneda argentina ($1.234.567)"""
@@ -495,10 +510,11 @@ def nuevo_presupuesto():
                 )
                 db.session.add(nuevo_item)
 
-        # 3. Descuento general (%) aplicado sobre el subtotal de todos los ítems
-        descuento_general = float(request.form.get('descuento_general') or 0)
-        p.descuento = descuento_general
-        p.total = subtotal_general * (1 - descuento_general / 100)
+        # 3. Descuento general (porcentual o monto fijo) sobre el subtotal de todos los ítems
+        descuento_tipo, descuento_valor, descuento_monto = calcular_descuento(request.form, subtotal_general)
+        p.descuento_tipo = descuento_tipo
+        p.descuento = descuento_valor
+        p.total = subtotal_general - descuento_monto
         db.session.commit()
         return redirect(url_for('presupuestos'))
         
@@ -579,10 +595,11 @@ def editar_presupuesto(id):
                 )
                 db.session.add(nuevo_item)
 
-        # Descuento general (%) aplicado sobre el subtotal de todos los ítems
-        descuento_general = float(request.form.get('descuento_general') or 0)
-        p.descuento = descuento_general
-        total_general = subtotal_general * (1 - descuento_general / 100)
+        # Descuento general (porcentual o monto fijo) sobre el subtotal de todos los ítems
+        descuento_tipo, descuento_valor, descuento_monto = calcular_descuento(request.form, subtotal_general)
+        p.descuento_tipo = descuento_tipo
+        p.descuento = descuento_valor
+        total_general = subtotal_general - descuento_monto
         p.total = total_general
 
         # Si es una ampliación, sincronizamos el monto de forma automática en el taller
@@ -833,9 +850,10 @@ def presupuesto_pdf(id):
     total_data = []
     if p.descuento:
         subtotal_bruto = sum(item.subtotal for item in p.items)
+        etiqueta_desc = 'Descuento:' if p.descuento_tipo == 'monto' else f'Descuento ({p.descuento:.0f}%):'
         total_data.append([Paragraph('Subtotal:', resumen_lbl),
                             Paragraph(fmt_moneda(subtotal_bruto), resumen_val)])
-        total_data.append([Paragraph(f'Descuento ({p.descuento:.0f}%):', resumen_lbl),
+        total_data.append([Paragraph(etiqueta_desc, resumen_lbl),
                             Paragraph(f'-{fmt_moneda(subtotal_bruto - p.total)}', resumen_val)])
     total_data.append([Paragraph('<b>TOTAL FINAL:</b>', total_lbl),
                         Paragraph(f'<b>{fmt_moneda(p.total)}</b>', total_val)])
@@ -1257,12 +1275,16 @@ def exportar_excel():
     # ── Hoja Presupuestos ──────────────────────────────
     ws2 = wb.create_sheet("Presupuestos")
     headers2 = ['ID', 'Número', 'Cliente', 'Tipo Equipo', 'Identificador', 'Marca',
-                'Modelo', 'Tipo Trabajo', 'Estado', 'Descuento %', 'Total', 'Fecha']
+                'Modelo', 'Tipo Trabajo', 'Estado', 'Descuento', 'Total', 'Fecha']
     for ci, h in enumerate(headers2, 1):
         hdr_style(ws2.cell(1, ci), h)
     for p in Presupuesto.query.order_by(Presupuesto.creado.desc()).all():
+        if p.descuento:
+            descuento_txt = fmt_moneda(p.descuento) if p.descuento_tipo == 'monto' else f'{p.descuento:.0f}%'
+        else:
+            descuento_txt = ''
         ws2.append([p.id, p.numero, p.cliente.empresa, p.tipo_equipo, p.identificador,
-                    p.marca, p.modelo, p.tipo_trabajo, p.estado, p.descuento or 0, p.total,
+                    p.marca, p.modelo, p.tipo_trabajo, p.estado, descuento_txt, p.total,
                     p.creado.strftime('%d/%m/%Y')])
 
     # ── Hoja Trabajos ──────────────────────────────────
@@ -1325,6 +1347,25 @@ def exportar_excel():
     return send_file(buffer, as_attachment=True,
                      download_name=f'TallerCosta_{date.today().strftime("%Y%m%d")}.xlsx',
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+# ═══════════════════════════════════════════════════════
+# RUTA TEMPORAL — Migración única de esquema (columna nueva)
+# ELIMINAR ESTA RUTA DESPUÉS DE USARLA UNA VEZ
+# ═══════════════════════════════════════════════════════
+
+@app.route('/admin/migrar-schema')
+def admin_migrar_schema():
+    """Agrega a presupuesto la columna descuento_tipo si todavía no existe
+    (db.create_all() no altera tablas ya creadas). No borra ni modifica datos."""
+    from sqlalchemy import text
+    try:
+        db.session.execute(text("ALTER TABLE presupuesto ADD COLUMN descuento_tipo VARCHAR(20) DEFAULT 'porcentaje'"))
+        db.session.commit()
+        resultado = 'descuento_tipo: OK'
+    except Exception as e:
+        db.session.rollback()
+        resultado = f'descuento_tipo: {e}'
+    return f'<pre>{resultado}</pre>'
 
 # ═══════════════════════════════════════════════════════
 # INICIO — Crear tablas y cargar datos por defecto
