@@ -18,7 +18,7 @@
 
     <!-- Resumen del cliente -->
     <div class="card" style="border-top:3px solid var(--navy);margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
             <div>
                 <div style="font-size:18px;font-weight:600;color:var(--navy)">
                     {{ cliente_sel.empresa }}
@@ -29,7 +29,7 @@
                 </div>
                 {% endif %}
             </div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;text-align:right">
+            <div class="grid-3" style="gap:24px;text-align:right">
                 <div>
                     <div style="font-size:11px;color:var(--text-light)">Total presupuestado</div>
                     <div style="font-size:16px;font-weight:600">
@@ -80,8 +80,7 @@
             </div>
 
             <!-- Estado de cuenta del trabajo -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;
-                        background:var(--gray-100);border-radius:var(--radius);
+            <div class="grid-3" style="background:var(--gray-100);border-radius:var(--radius);
                         overflow:hidden;margin-bottom:12px">
                 <div style="padding:10px 14px;border-right:1px solid var(--border)">
                     <div style="font-size:11px;color:var(--text-light)">Presupuestado</div>

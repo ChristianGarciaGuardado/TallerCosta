@@ -129,6 +129,7 @@
         #menu-toggle { display: none; } /* Oculto en PC por defecto */
 
         .topbar-title { font-size: 15px; font-weight: 600; color: var(--text); }
+        .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
         .content { padding: 24px; flex: 1; }
 
         /* BOTONES */
@@ -215,6 +216,12 @@
         .work-total { font-size: 13px; font-weight: 600; color: var(--text); }
         .work-saldo { font-size: 11px; margin-top: 2px; }
 
+        /* LAYOUT — grillas genéricas de 2/3 columnas (no-formulario) que también
+           deben colapsar a 1 columna en móvil, p. ej. paneles lado a lado o
+           tiras de estadísticas */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+
         /* FORMULARIOS */
         .form-grid { display: grid; gap: 12px; }
         .form-grid-2 { grid-template-columns: 1fr 1fr; }
@@ -253,6 +260,11 @@
         td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: var(--gray-100); }
+
+        /* Envoltorio para que una tabla (u otro bloque tabular ancho, como las
+           filas de ítems de presupuesto) haga scroll horizontal dentro de su
+           propio contenedor en vez de desbordar la página */
+        .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
         /* FILTROS */
         .filter-bar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
@@ -343,20 +355,43 @@
 
             .main { margin-left: 0; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-            .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+            .form-grid-2, .form-grid-3, .grid-2, .grid-3 { grid-template-columns: 1fr; }
             .content { padding: 12px; }
-            
-            .topbar { 
-                padding: 0 12px; 
+
+            .topbar {
+                padding: 0 12px;
                 display: flex;
                 align-items: center;
                 justify-content: flex-start;
                 gap: 4px;
             }
-            
+
+            /* El título se achica si hace falta y las acciones, si no entran,
+               scrollean horizontalmente en vez de tapar el título o desbordar
+               la página (la topbar mantiene su alto fijo por el menú lateral) */
+            .topbar-title {
+                flex: 1 1 auto; min-width: 0;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            }
+            .topbar-actions {
+                flex: 0 1 auto; max-width: 60%;
+                overflow-x: auto; flex-wrap: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
+            .topbar-actions .btn { flex-shrink: 0; }
+
+            /* Botones más chicos y filas de acciones más compactas */
+            .btn { padding: 6px 12px; font-size: 12px; }
+            .btn-sm { padding: 4px 8px; font-size: 11px; }
+
             .work-row { flex-wrap: wrap; }
             table { font-size: 12px; }
             th, td { padding: 6px 8px; }
+
+            /* Los filtros (algunos con ancho fijo en px por estilo inline)
+               pasan a ocupar todo el ancho, uno por fila, en vez de quedar
+               angostos; el !important es necesario para ganarle al inline */
+            .filter-bar > * { width: 100% !important; }
         }
     </style>
 </head>
@@ -422,7 +457,7 @@
             <i class="ti ti-menu-2" style="font-size: 24px; color: var(--navy);"></i>
         </button>
         <span class="topbar-title">{% block topbar_title %}{% endblock %}</span>
-        <div style="margin-left: auto;">{% block topbar_actions %}{% endblock %}</div>
+        <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
     </div>
     <div class="content">
         {% block content %}{% endblock %}
