@@ -1317,30 +1317,6 @@ def exportar_excel():
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 # ═══════════════════════════════════════════════════════
-# RUTA TEMPORAL — Migración única de esquema (columnas nuevas)
-# ELIMINAR ESTA RUTA DESPUÉS DE USARLA UNA VEZ
-# ═══════════════════════════════════════════════════════
-
-@app.route('/admin/migrar-schema')
-def admin_migrar_schema():
-    """Agrega a gasto_general las columnas pagado/fecha_pago si todavía no existen
-    (db.create_all() no altera tablas ya creadas). No borra ni modifica datos."""
-    from sqlalchemy import text
-    resultados = []
-    for ddl, nombre in [
-        ('ALTER TABLE gasto_general ADD COLUMN pagado BOOLEAN DEFAULT TRUE', 'pagado'),
-        ('ALTER TABLE gasto_general ADD COLUMN fecha_pago DATE', 'fecha_pago'),
-    ]:
-        try:
-            db.session.execute(text(ddl))
-            db.session.commit()
-            resultados.append(f'{nombre}: OK')
-        except Exception as e:
-            db.session.rollback()
-            resultados.append(f'{nombre}: {e}')
-    return '<pre>' + '\n'.join(resultados) + '</pre>'
-
-# ═══════════════════════════════════════════════════════
 # INICIO — Crear tablas y cargar datos por defecto
 # ═══════════════════════════════════════════════════════
 
