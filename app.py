@@ -1327,25 +1327,6 @@ def exportar_excel():
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 # ═══════════════════════════════════════════════════════
-# RUTA TEMPORAL — Migración única de esquema (columna nueva)
-# ELIMINAR ESTA RUTA DESPUÉS DE USARLA UNA VEZ
-# ═══════════════════════════════════════════════════════
-
-@app.route('/admin/migrar-schema')
-def admin_migrar_schema():
-    """Agrega a presupuesto la columna descuento si todavía no existe
-    (db.create_all() no altera tablas ya creadas). No borra ni modifica datos."""
-    from sqlalchemy import text
-    try:
-        db.session.execute(text('ALTER TABLE presupuesto ADD COLUMN descuento FLOAT DEFAULT 0'))
-        db.session.commit()
-        resultado = 'descuento: OK'
-    except Exception as e:
-        db.session.rollback()
-        resultado = f'descuento: {e}'
-    return f'<pre>{resultado}</pre>'
-
-# ═══════════════════════════════════════════════════════
 # INICIO — Crear tablas y cargar datos por defecto
 # ═══════════════════════════════════════════════════════
 
