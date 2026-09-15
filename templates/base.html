@@ -229,7 +229,7 @@
         .form-full { grid-column: 1 / -1; }
         .field { display: flex; flex-direction: column; gap: 4px; }
         .field label { font-size: 12px; font-weight: 500; color: var(--text-light); }
-        .field input, .field select, .field textarea {
+        .field input:not([type="radio"]):not([type="checkbox"]), .field select, .field textarea {
             padding: 8px 10px;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
@@ -241,6 +241,13 @@
         .field input:focus, .field select:focus, .field textarea:focus {
             outline: none;
             border-color: var(--blue);
+        }
+        /* Radios/checkboxes dentro de un .field no deben heredar el estilo de
+           los inputs de texto (ancho completo, borde, padding) */
+        .field input[type="radio"], .field input[type="checkbox"] {
+            width: auto;
+            flex-shrink: 0;
+            accent-color: var(--navy);
         }
         .field textarea { resize: vertical; min-height: 70px; }
 
