@@ -66,54 +66,89 @@
     <div class="card">
         <div class="card-title">Ítems del presupuesto</div>
 
-        <div class="table-wrap">
-        <div style="min-width:600px">
-        <div style="display:grid;grid-template-columns:2fr 70px 110px 80px 90px 30px;gap:8px;margin-bottom:6px;padding:0 4px">
-            <span style="font-size:11px;color:var(--text-light);font-weight:500">DESCRIPCIÓN</span>
-            <span style="font-size:11px;color:var(--text-light);font-weight:500">CANT.</span>
-            <span style="font-size:11px;color:var(--text-light);font-weight:500">P. UNIT. ($)</span>
-            <span style="font-size:11px;color:var(--text-light);font-weight:500">DESC. (%)</span>
-            <span style="font-size:11px;color:var(--text-light);font-weight:500">SUBTOTAL</span>
-            <span></span>
-        </div>
-
         <div id="items-container">
         {% if presupuesto and presupuesto.items %}
             {% for item in presupuesto.items %}
-            <div class="item-row" style="display:grid;grid-template-columns:2fr 70px 110px 80px 90px 30px;gap:8px;margin-bottom:8px;align-items:center">
-                <input type="text" name="descripcion[]" value="{{ item.descripcion }}" required>
-                <input type="number" name="cantidad[]" value="{{ item.cantidad }}" min="0" step="0.01" oninput="calcSubtotal(this)">
-                <input type="number" name="precio[]" value="{{ item.precio_unitario }}" min="0" step="0.01" oninput="calcSubtotal(this)">
-                <input type="number" name="descuento[]" value="{{ item.descuento or 0 }}" min="0" max="100" step="0.1" oninput="calcSubtotal(this)">
-                <div class="subtotal-display" style="font-size:13px;font-weight:500;text-align:right;padding-right:4px;color:var(--text)">
-                    ${{ '{:,.0f}'.format(item.subtotal).replace(',','.') }}
+            <div class="item-row" style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px">
+                <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px">
+                    <input type="text" name="descripcion[]" value="{{ item.descripcion }}" placeholder="Descripción..." required
+                           style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px">
+                    <button type="button" onclick="removeItem(this)" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px;padding:4px;flex-shrink:0">
+                        <i class="ti ti-x"></i>
+                    </button>
                 </div>
-                <button type="button" onclick="removeItem(this)" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px">
-                    <i class="ti ti-x"></i>
-                </button>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                    <div>
+                        <label style="font-size:10px;color:var(--text-light);font-weight:500;display:block;margin-bottom:3px">CANT.</label>
+                        <input type="number" name="cantidad[]" value="{{ item.cantidad }}" min="0" step="0.01" oninput="calcSubtotal(this)"
+                               style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px">
+                    </div>
+                    <div>
+                        <label style="font-size:10px;color:var(--text-light);font-weight:500;display:block;margin-bottom:3px">P. UNIT. ($)</label>
+                        <input type="number" name="precio[]" value="{{ item.precio_unitario }}" min="0" step="0.01" oninput="calcSubtotal(this)"
+                               style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px">
+                    </div>
+                    <div>
+                        <label style="font-size:10px;color:var(--text-light);font-weight:500;display:block;margin-bottom:3px">SUBTOTAL</label>
+                        <div class="subtotal-display" style="padding:7px 0;font-size:13px;font-weight:600;color:var(--text)">
+                            ${{ '{:,.0f}'.format(item.subtotal).replace(',','.') }}
+                        </div>
+                    </div>
+                </div>
             </div>
             {% endfor %}
         {% else %}
-            <div class="item-row" style="display:grid;grid-template-columns:2fr 70px 110px 80px 90px 30px;gap:8px;margin-bottom:8px;align-items:center">
-                <input type="text" name="descripcion[]" placeholder="Descripción..." required>
-                <input type="number" name="cantidad[]" value="1" min="0" step="0.01" oninput="calcSubtotal(this)">
-                <input type="number" name="precio[]" value="" min="0" step="0.01" placeholder="0" oninput="calcSubtotal(this)">
-                <input type="number" name="descuento[]" value="0" min="0" max="100" step="0.1" oninput="calcSubtotal(this)">
-                <div class="subtotal-display" style="font-size:13px;font-weight:500;text-align:right;padding-right:4px;color:var(--text)">$0</div>
-                <button type="button" onclick="removeItem(this)" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px">
-                    <i class="ti ti-x"></i>
-                </button>
+            <div class="item-row" style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px">
+                <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px">
+                    <input type="text" name="descripcion[]" placeholder="Descripción..." required
+                           style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px">
+                    <button type="button" onclick="removeItem(this)" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px;padding:4px;flex-shrink:0">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                    <div>
+                        <label style="font-size:10px;color:var(--text-light);font-weight:500;display:block;margin-bottom:3px">CANT.</label>
+                        <input type="number" name="cantidad[]" value="1" min="0" step="0.01" oninput="calcSubtotal(this)"
+                               style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px">
+                    </div>
+                    <div>
+                        <label style="font-size:10px;color:var(--text-light);font-weight:500;display:block;margin-bottom:3px">P. UNIT. ($)</label>
+                        <input type="number" name="precio[]" value="" min="0" step="0.01" placeholder="0" oninput="calcSubtotal(this)"
+                               style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px">
+                    </div>
+                    <div>
+                        <label style="font-size:10px;color:var(--text-light);font-weight:500;display:block;margin-bottom:3px">SUBTOTAL</label>
+                        <div class="subtotal-display" style="padding:7px 0;font-size:13px;font-weight:600;color:var(--text)">$0</div>
+                    </div>
+                </div>
             </div>
         {% endif %}
-        </div>
-        </div>
         </div>
 
         <button type="button" onclick="addItem()" class="btn btn-ghost btn-sm" style="margin-top:4px">
             <i class="ti ti-plus"></i> Agregar ítem
         </button>
 
-        <div style="background:var(--navy);border-radius:var(--radius);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+        <hr class="divider">
+
+        <div class="field" style="max-width:220px">
+            <label>Descuento general (%)</label>
+            <input type="number" id="descuento-general" name="descuento_general" min="0" max="100" step="0.1"
+                   value="{{ presupuesto.descuento if presupuesto and presupuesto.descuento else 0 }}"
+                   oninput="updateTotal()">
+        </div>
+
+        <div id="resumen-subtotal" class="mini-row" style="display:none">
+            <span class="mini-label">Subtotal</span>
+            <span class="mini-val" id="subtotal-display">$0</span>
+        </div>
+        <div id="resumen-descuento" class="mini-row" style="display:none">
+            <span class="mini-label">Descuento</span>
+            <span class="mini-val" style="color:var(--red)" id="descuento-monto-display">-$0</span>
+        </div>
+
+        <div style="background:var(--navy);border-radius:var(--radius);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:10px">
             <span style="color:rgba(255,255,255,0.7);font-size:13px">Total presupuesto</span>
             <strong id="total-display" style="color:#fff;font-size:18px">$0</strong>
         </div>
@@ -147,20 +182,28 @@ function calcSubtotal(input) {
     const row = input.closest('.item-row');
     const cant = parseFloat(row.querySelector('input[name="cantidad[]"]').value) || 0;
     const precio = parseFloat(row.querySelector('input[name="precio[]"]').value) || 0;
-    const desc = parseFloat(row.querySelector('input[name="descuento[]"]').value) || 0;
-    const sub = cant * precio * (1 - desc / 100);
+    const sub = cant * precio;
     row.querySelector('.subtotal-display').textContent = fmt(sub);
     updateTotal();
 }
 
 function updateTotal() {
-    let total = 0;
+    let subtotal = 0;
     document.querySelectorAll('.item-row').forEach(row => {
         const cant = parseFloat(row.querySelector('input[name="cantidad[]"]').value) || 0;
         const precio = parseFloat(row.querySelector('input[name="precio[]"]').value) || 0;
-        const desc = parseFloat(row.querySelector('input[name="descuento[]"]').value) || 0;
-        total += cant * precio * (1 - desc / 100);
+        subtotal += cant * precio;
     });
+
+    const descPct = parseFloat(document.getElementById('descuento-general').value) || 0;
+    const descMonto = subtotal * (descPct / 100);
+    const total = subtotal - descMonto;
+
+    const hayDescuento = descPct > 0;
+    document.getElementById('resumen-subtotal').style.display = hayDescuento ? 'flex' : 'none';
+    document.getElementById('resumen-descuento').style.display = hayDescuento ? 'flex' : 'none';
+    document.getElementById('subtotal-display').textContent = fmt(subtotal);
+    document.getElementById('descuento-monto-display').textContent = '-' + fmt(descMonto);
     document.getElementById('total-display').textContent = fmt(total);
 }
 
@@ -168,16 +211,31 @@ function addItem() {
     const container = document.getElementById('items-container');
     const div = document.createElement('div');
     div.className = 'item-row';
-    div.style.cssText = 'display:grid;grid-template-columns:2fr 70px 110px 80px 90px 30px;gap:8px;margin-bottom:8px;align-items:center';
+    div.style.cssText = 'border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px';
     div.innerHTML = `
-        <input type="text" name="descripcion[]" placeholder="Descripción..." required>
-        <input type="number" name="cantidad[]" value="1" min="0" step="0.01" oninput="calcSubtotal(this)">
-        <input type="number" name="precio[]" value="" min="0" step="0.01" placeholder="0" oninput="calcSubtotal(this)">
-        <input type="number" name="descuento[]" value="0" min="0" max="100" step="0.1" oninput="calcSubtotal(this)">
-        <div class="subtotal-display" style="font-size:13px;font-weight:500;text-align:right;padding-right:4px;color:var(--text)">$0</div>
-        <button type="button" onclick="removeItem(this)" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px">
-            <i class="ti ti-x"></i>
-        </button>`;
+        <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px">
+            <input type="text" name="descripcion[]" placeholder="Descripción..." required
+                   style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px">
+            <button type="button" onclick="removeItem(this)" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px;padding:4px;flex-shrink:0">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div>
+                <label style="font-size:10px;color:var(--text-light);font-weight:500;display:block;margin-bottom:3px">CANT.</label>
+                <input type="number" name="cantidad[]" value="1" min="0" step="0.01" oninput="calcSubtotal(this)"
+                       style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px">
+            </div>
+            <div>
+                <label style="font-size:10px;color:var(--text-light);font-weight:500;display:block;margin-bottom:3px">P. UNIT. ($)</label>
+                <input type="number" name="precio[]" value="" min="0" step="0.01" placeholder="0" oninput="calcSubtotal(this)"
+                       style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px">
+            </div>
+            <div>
+                <label style="font-size:10px;color:var(--text-light);font-weight:500;display:block;margin-bottom:3px">SUBTOTAL</label>
+                <div class="subtotal-display" style="padding:7px 0;font-size:13px;font-weight:600;color:var(--text)">$0</div>
+            </div>
+        </div>`;
     container.appendChild(div);
 }
 

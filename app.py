@@ -73,6 +73,7 @@ class Presupuesto(db.Model):
     observaciones = db.Column(db.Text)
     estado = db.Column(db.String(20), default='borrador')  # borrador, enviado, aceptado, rechazado
     total = db.Column(db.Float, default=0)
+    descuento = db.Column(db.Float, default=0)  # % de descuento general sobre el subtotal de items
     creado = db.Column(db.DateTime, default=hora_argentina)
     items = db.relationship('ItemPresupuesto', backref='presupuesto', lazy=True, cascade='all, delete-orphan')
     trabajo = db.relationship('Trabajo', backref='presupuesto', lazy=True, uselist=False)
@@ -475,29 +476,29 @@ def nuevo_presupuesto():
         descripciones = request.form.getlist('descripcion[]')
         cantidades = request.form.getlist('cantidad[]')
         precios = request.form.getlist('precio[]')
-        descuentos = request.form.getlist('descuento[]')
-        
-        total_general = 0
+
+        subtotal_general = 0
         for i in range(len(descripciones)):
             if descripciones[i].strip():
                 cant = float(cantidades[i]) if (i < len(cantidades) and cantidades[i]) else 1.0
                 precio = float(precios[i]) if (i < len(precios) and precios[i]) else 0.0
-                desc = float(descuentos[i]) if (i < len(descuentos) and descuentos[i]) else 0.0
-                
-                subtotal = cant * precio * (1 - desc / 100)
-                total_general += subtotal
-                
+
+                subtotal = cant * precio
+                subtotal_general += subtotal
+
                 nuevo_item = ItemPresupuesto(
                     presupuesto_id=p.id,
                     descripcion=descripciones[i],
                     cantidad=cant,
                     precio_unitario=precio,
-                    descuento=desc,
                     subtotal=subtotal
                 )
                 db.session.add(nuevo_item)
-        
-        p.total = total_general
+
+        # 3. Descuento general (%) aplicado sobre el subtotal de todos los ítems
+        descuento_general = float(request.form.get('descuento_general') or 0)
+        p.descuento = descuento_general
+        p.total = subtotal_general * (1 - descuento_general / 100)
         db.session.commit()
         return redirect(url_for('presupuestos'))
         
@@ -555,34 +556,35 @@ def editar_presupuesto(id):
         descripciones = request.form.getlist('descripcion[]')
         cantidades = request.form.getlist('cantidad[]')
         precios = request.form.getlist('precio[]')  # Sincronizado con name="precio[]"
-        descuentos = request.form.getlist('descuento[]')
-        
+
         # Eliminamos ítems viejos para reescribir
         for item in p.items:
             db.session.delete(item)
-            
-        total_general = 0
+
+        subtotal_general = 0
         for i in range(len(descripciones)):
             if descripciones[i].strip():
                 cant = float(cantidades[i]) if (i < len(cantidades) and cantidades[i]) else 1.0
                 precio = float(precios[i]) if (i < len(precios) and precios[i]) else 0.0
-                desc = float(descuentos[i]) if (i < len(descuentos) and descuentos[i]) else 0.0
-                
-                subtotal = cant * precio * (1 - desc / 100)
-                total_general += subtotal
-                
+
+                subtotal = cant * precio
+                subtotal_general += subtotal
+
                 nuevo_item = ItemPresupuesto(
                     presupuesto_id=p.id,
                     descripcion=descripciones[i],
                     cantidad=cant,
                     precio_unitario=precio,
-                    descuento=desc,
                     subtotal=subtotal
                 )
                 db.session.add(nuevo_item)
-        
+
+        # Descuento general (%) aplicado sobre el subtotal de todos los ítems
+        descuento_general = float(request.form.get('descuento_general') or 0)
+        p.descuento = descuento_general
+        total_general = subtotal_general * (1 - descuento_general / 100)
         p.total = total_general
-        
+
         # Si es una ampliación, sincronizamos el monto de forma automática en el taller
         if p.estado == 'aceptado':
             trabajo_taller = Trabajo.query.filter_by(presupuesto_id=p.id).first()
@@ -790,7 +792,6 @@ def presupuesto_pdf(id):
         Paragraph('<b>Descripción del Trabajo / Repuesto</b>', hdr_style),
         Paragraph('<b>Cantidad</b>', hdr_style),
         Paragraph('<b>P. Unit. ($)</b>', hdr_style),
-        Paragraph('<b>Desc. (%)</b>', hdr_style),
         Paragraph('<b>Subtotal ($)</b>', hdr_style),
     ]
     items_data = [items_header]
@@ -803,15 +804,14 @@ def presupuesto_pdf(id):
             Paragraph(item.descripcion, cell_style),
             Paragraph(fmt_numero(item.cantidad), cell_right),
             Paragraph(fmt_moneda(item.precio_unitario), cell_right), # Corregido al helper de app.py
-            Paragraph(f"{item.descuento:.0f}%" if item.descuento else '', cell_right),
             Paragraph(fmt_moneda(item.subtotal), cell_right),         # Corregido al helper de app.py
         ])
 
     # Filas vacías hasta 12
     for i in range(len(p.items) + 1, 13):
-        items_data.append([Paragraph(str(i), cell_style), '', '', '', '', ''])
+        items_data.append([Paragraph(str(i), cell_style), '', '', '', ''])
 
-    items_table = Table(items_data, colWidths=[1*cm, 7.5*cm, 2*cm, 2.5*cm, 2*cm, 2*cm])
+    items_table = Table(items_data, colWidths=[1*cm, 8*cm, 2.5*cm, 2.5*cm, 3*cm])
     items_table.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), navy),
         ('GRID', (0,0), (-1,-1), 0.5, border_color),
@@ -824,19 +824,29 @@ def presupuesto_pdf(id):
     ]))
     elements.append(items_table)
 
-    # ── Total final ───────────────────────────────────────
-    total_data = [
-        ['', '', '', '', Paragraph('<b>TOTAL FINAL:</b>',
-                                    ParagraphStyle('tf', fontSize=9, textColor=colors.white, alignment=TA_RIGHT)),
-         Paragraph(f'<b>{fmt_moneda(p.total)}</b>', # Corregido al helper de app.py
-                   ParagraphStyle('tv', fontSize=9, textColor=colors.white, alignment=TA_RIGHT))]
-    ]
-    total_table = Table(total_data, colWidths=[1*cm, 7.5*cm, 1*cm, 1*cm, 3.25*cm, 3.25*cm])
+    # ── Resumen y total final ──────────────────────────────
+    resumen_lbl = ParagraphStyle('rl', fontSize=8, alignment=TA_RIGHT)
+    resumen_val = ParagraphStyle('rv', fontSize=8, alignment=TA_RIGHT)
+    total_lbl = ParagraphStyle('tf', fontSize=9, textColor=colors.white, alignment=TA_RIGHT)
+    total_val = ParagraphStyle('tv', fontSize=9, textColor=colors.white, alignment=TA_RIGHT)
+
+    total_data = []
+    if p.descuento:
+        subtotal_bruto = sum(item.subtotal for item in p.items)
+        total_data.append([Paragraph('Subtotal:', resumen_lbl),
+                            Paragraph(fmt_moneda(subtotal_bruto), resumen_val)])
+        total_data.append([Paragraph(f'Descuento ({p.descuento:.0f}%):', resumen_lbl),
+                            Paragraph(f'-{fmt_moneda(subtotal_bruto - p.total)}', resumen_val)])
+    total_data.append([Paragraph('<b>TOTAL FINAL:</b>', total_lbl),
+                        Paragraph(f'<b>{fmt_moneda(p.total)}</b>', total_val)])
+
+    total_table = Table(total_data, colWidths=[13.5*cm, 3.5*cm])
+    ultima_fila = len(total_data) - 1
     total_table.setStyle(TableStyle([
-        ('BACKGROUND', (4,0), (-1,-1), navy),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BACKGROUND', (0,ultima_fila), (-1,ultima_fila), navy),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
         ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-        ('GRID', (4,0), (-1,-1), 0.5, border_color),
+        ('GRID', (0,ultima_fila), (-1,ultima_fila), 0.5, border_color),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     elements.append(total_table)
@@ -1247,12 +1257,12 @@ def exportar_excel():
     # ── Hoja Presupuestos ──────────────────────────────
     ws2 = wb.create_sheet("Presupuestos")
     headers2 = ['ID', 'Número', 'Cliente', 'Tipo Equipo', 'Identificador', 'Marca',
-                'Modelo', 'Tipo Trabajo', 'Estado', 'Total', 'Fecha']
+                'Modelo', 'Tipo Trabajo', 'Estado', 'Descuento %', 'Total', 'Fecha']
     for ci, h in enumerate(headers2, 1):
         hdr_style(ws2.cell(1, ci), h)
     for p in Presupuesto.query.order_by(Presupuesto.creado.desc()).all():
         ws2.append([p.id, p.numero, p.cliente.empresa, p.tipo_equipo, p.identificador,
-                    p.marca, p.modelo, p.tipo_trabajo, p.estado, p.total,
+                    p.marca, p.modelo, p.tipo_trabajo, p.estado, p.descuento or 0, p.total,
                     p.creado.strftime('%d/%m/%Y')])
 
     # ── Hoja Trabajos ──────────────────────────────────
@@ -1315,6 +1325,25 @@ def exportar_excel():
     return send_file(buffer, as_attachment=True,
                      download_name=f'TallerCosta_{date.today().strftime("%Y%m%d")}.xlsx',
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+# ═══════════════════════════════════════════════════════
+# RUTA TEMPORAL — Migración única de esquema (columna nueva)
+# ELIMINAR ESTA RUTA DESPUÉS DE USARLA UNA VEZ
+# ═══════════════════════════════════════════════════════
+
+@app.route('/admin/migrar-schema')
+def admin_migrar_schema():
+    """Agrega a presupuesto la columna descuento si todavía no existe
+    (db.create_all() no altera tablas ya creadas). No borra ni modifica datos."""
+    from sqlalchemy import text
+    try:
+        db.session.execute(text('ALTER TABLE presupuesto ADD COLUMN descuento FLOAT DEFAULT 0'))
+        db.session.commit()
+        resultado = 'descuento: OK'
+    except Exception as e:
+        db.session.rollback()
+        resultado = f'descuento: {e}'
+    return f'<pre>{resultado}</pre>'
 
 # ═══════════════════════════════════════════════════════
 # INICIO — Crear tablas y cargar datos por defecto
