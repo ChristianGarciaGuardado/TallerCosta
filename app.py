@@ -1328,7 +1328,7 @@ def admin_migrar_schema():
     from sqlalchemy import text
     resultados = []
     for ddl, nombre in [
-        ('ALTER TABLE gasto_general ADD COLUMN pagado BOOLEAN DEFAULT 1', 'pagado'),
+        ('ALTER TABLE gasto_general ADD COLUMN pagado BOOLEAN DEFAULT TRUE', 'pagado'),
         ('ALTER TABLE gasto_general ADD COLUMN fecha_pago DATE', 'fecha_pago'),
     ]:
         try:
