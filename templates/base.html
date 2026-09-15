@@ -287,6 +287,39 @@
         .empty-state i { font-size: 40px; display: block; margin-bottom: 12px; opacity: 0.4; }
         .empty-state p { font-size: 14px; }
 
+        /* DRAWER (panel lateral) */
+        .drawer-overlay {
+            position: fixed; inset: 0; background: rgba(15,23,42,0.4);
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease; z-index: 300;
+        }
+        .drawer-overlay.active { opacity: 1; pointer-events: auto; }
+        .drawer-panel {
+            position: fixed; top: 0; right: 0; height: 100vh; width: 440px; max-width: 100%;
+            background: var(--white); box-shadow: -6px 0 24px rgba(0,0,0,0.15);
+            z-index: 301; transform: translateX(100%); transition: transform 0.25s ease;
+            display: flex; flex-direction: column;
+        }
+        .drawer-panel.active { transform: translateX(0); }
+        .drawer-header {
+            padding: 18px 20px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+        .drawer-header h3 { font-size: 15px; font-weight: 600; color: var(--text); }
+        .drawer-close {
+            background: none; border: none; cursor: pointer; font-size: 20px;
+            color: var(--text-light); line-height: 1; padding: 4px;
+        }
+        .drawer-close:hover { color: var(--text); }
+        .drawer-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .drawer-footer {
+            padding: 16px 20px; border-top: 1px solid var(--border);
+            display: flex; gap: 8px; flex-shrink: 0;
+        }
+
+        @media (max-width: 480px) {
+            .drawer-panel { width: 100%; }
+        }
+
         /* RESPONSIVE MÓVIL */
         @media (max-width: 768px) {
             #menu-toggle { display: block !important; }
@@ -413,6 +446,27 @@
                 if (!sidebar.contains(e.target) && e.target !== menuToggle) {
                     sidebar.classList.remove('active');
                 }
+            });
+        }
+    });
+
+    // DRAWER (panel lateral) — componente genérico reutilizable
+    function openDrawer(id) {
+        const panel = document.getElementById(id);
+        const overlay = document.getElementById(id + '-overlay');
+        if (panel) panel.classList.add('active');
+        if (overlay) overlay.classList.add('active');
+    }
+    function closeDrawer(id) {
+        const panel = document.getElementById(id);
+        const overlay = document.getElementById(id + '-overlay');
+        if (panel) panel.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.drawer-panel.active').forEach(function(p) {
+                closeDrawer(p.id);
             });
         }
     });

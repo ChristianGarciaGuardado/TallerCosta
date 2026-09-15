@@ -155,6 +155,8 @@ class GastoGeneral(db.Model):
     comprobante = db.Column(db.String(50))
     anulado = db.Column(db.Boolean, default=False)
     notas = db.Column(db.Text)
+    pagado = db.Column(db.Boolean, default=True)
+    fecha_pago = db.Column(db.Date, nullable=True)
 
 class OpcionLista(db.Model):
     """Opciones configurables de los desplegables (tipos de equipo, trabajo, etc.)"""
@@ -1059,30 +1061,69 @@ def historial():
 def gastos_generales():
     categorias = get_opciones('categoria_gasto')
     formas_pago = get_opciones('forma_pago')
+    proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
+
     if request.method == 'POST':
+        pagar_ahora = request.form.get('pagar_ahora') == 'si'
+        fecha_pago_str = request.form.get('fecha_pago')
         g = GastoGeneral(
             fecha=datetime.strptime(request.form['fecha'], '%Y-%m-%d').date(),
             categoria=request.form['categoria'],
             proveedor=request.form.get('proveedor'),
             monto=float(request.form['monto'] or 0),
-            forma_pago=request.form.get('forma_pago'),
             comprobante=request.form.get('comprobante'),
-            notas=request.form.get('notas')
+            notas=request.form.get('notas'),
+            pagado=pagar_ahora,
+            forma_pago=request.form.get('forma_pago') if pagar_ahora else None,
+            fecha_pago=((datetime.strptime(fecha_pago_str, '%Y-%m-%d').date() if fecha_pago_str else date.today())
+                        if pagar_ahora else None)
         )
         db.session.add(g)
         db.session.commit()
         return redirect(url_for('gastos_generales'))
-    lista = GastoGeneral.query.order_by(GastoGeneral.fecha.desc()).limit(50).all()
-    proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
+
+    # Filtros
+    categoria_f = request.args.get('categoria', '')
+    estado_f = request.args.get('estado', '')  # '' | 'activos' | 'anulados'
+    q = request.args.get('q', '')
+
+    query = GastoGeneral.query
+    if categoria_f:
+        query = query.filter_by(categoria=categoria_f)
+    if estado_f == 'activos':
+        query = query.filter_by(anulado=False)
+    elif estado_f == 'anulados':
+        query = query.filter_by(anulado=True)
+    if q:
+        like = f'%{q}%'
+        query = query.filter(db.or_(
+            GastoGeneral.proveedor.ilike(like),
+            GastoGeneral.notas.ilike(like),
+            GastoGeneral.comprobante.ilike(like)
+        ))
+
+    lista = query.order_by(GastoGeneral.fecha.desc()).limit(50).all()
     return render_template('gastos_generales.html', gastos=lista,
                            categorias=categorias, formas_pago=formas_pago,
-                           proveedores=proveedores)
+                           proveedores=proveedores,
+                           categoria_f=categoria_f, estado_f=estado_f, q=q)
 
 @app.route('/gastos-generales/<int:id>/anular', methods=['POST'])
 def anular_gasto_general(id):
     """Anula un gasto general — queda registrado pero no se contabiliza"""
     g = GastoGeneral.query.get_or_404(id)
     g.anulado = True
+    db.session.commit()
+    return redirect(url_for('gastos_generales'))
+
+@app.route('/gastos-generales/<int:id>/pagar', methods=['POST'])
+def pagar_gasto_general(id):
+    """Registra el pago de un gasto general que había quedado como saldo pendiente"""
+    g = GastoGeneral.query.get_or_404(id)
+    fecha_pago_str = request.form.get('fecha_pago')
+    g.pagado = True
+    g.forma_pago = request.form.get('forma_pago')
+    g.fecha_pago = datetime.strptime(fecha_pago_str, '%Y-%m-%d').date() if fecha_pago_str else date.today()
     db.session.commit()
     return redirect(url_for('gastos_generales'))
 
@@ -1242,12 +1283,14 @@ def exportar_excel():
 
     # ── Hoja Gastos Generales ──────────────────────────
     ws5 = wb.create_sheet("Gastos Generales")
-    headers5 = ['ID', 'Fecha', 'Categoría', 'Proveedor', 'Monto', 'Forma Pago', 'Comprobante', 'Anulado']
+    headers5 = ['ID', 'Fecha', 'Categoría', 'Proveedor', 'Monto', 'Estado', 'Forma Pago',
+                'Fecha Pago', 'Comprobante', 'Anulado']
     for ci, h in enumerate(headers5, 1):
         hdr_style(ws5.cell(1, ci), h)
     for g in GastoGeneral.query.order_by(GastoGeneral.fecha.desc()).all():
         ws5.append([g.id, g.fecha.strftime('%d/%m/%Y'), g.categoria,
-                g.proveedor, g.monto, g.forma_pago, g.comprobante,
+                g.proveedor, g.monto, 'Pagado' if g.pagado else 'Pendiente', g.forma_pago,
+                g.fecha_pago.strftime('%d/%m/%Y') if g.fecha_pago else '', g.comprobante,
                 'Sí' if g.anulado else 'No'])
 
     # ── Hoja Cobranzas ─────────────────────────────────

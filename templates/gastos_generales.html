@@ -1,17 +1,110 @@
 {% extends "base.html" %}
 {% block title %}Gastos generales{% endblock %}
 {% block topbar_title %}Gastos generales{% endblock %}
+{% block topbar_actions %}
+<button type="button" class="btn btn-primary" onclick="openDrawer('drawer-nuevo-gasto')">
+    <i class="ti ti-plus"></i> Nuevo gasto
+</button>
+{% endblock %}
 {% block content %}
 
-<div style="display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start">
+<form method="get" class="filter-bar">
+    <select name="categoria">
+        <option value="">Todas las categorías</option>
+        {% for cat in categorias %}
+        <option value="{{ cat }}" {% if categoria_f == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+    </select>
+    <select name="estado">
+        <option value="">Todos los estados</option>
+        <option value="activos" {% if estado_f == 'activos' %}selected{% endif %}>Activos</option>
+        <option value="anulados" {% if estado_f == 'anulados' %}selected{% endif %}>Anulados</option>
+    </select>
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por proveedor, notas o comprobante..." style="flex:1;min-width:220px">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-filter"></i> Filtrar</button>
+    {% if categoria_f or estado_f or q %}
+    <a href="/gastos-generales" class="btn btn-ghost btn-sm"><i class="ti ti-x"></i> Limpiar</a>
+    {% endif %}
+</form>
 
-    <!-- Formulario -->
-    <div class="card">
-        <div class="card-title">Cargar gasto general</div>
-        <form method="post">
-            <div class="form-grid" style="margin-bottom:14px">
+{% if gastos %}
+<div class="card" style="padding:0">
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Categoría</th>
+                <th>Proveedor</th>
+                <th style="text-align:right">Monto</th>
+                <th>Estado</th>
+                <th style="text-align:right">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in gastos %}
+            <tr>
+                <td>{{ g.fecha.strftime('%d/%m/%Y') }}</td>
+                <td>{{ g.categoria }}</td>
+                <td>{{ g.proveedor or '—' }}</td>
+                <td style="text-align:right;font-weight:500">{{ g.monto | moneda }}</td>
+                <td>
+                    {% if g.anulado %}
+                        <span class="badge badge-gray">Anulado</span>
+                    {% elif g.pagado %}
+                        <span class="badge badge-green">Pagado</span>
+                    {% else %}
+                        <span class="badge badge-amber">Pendiente</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display:flex;gap:6px;justify-content:flex-end">
+                        {% if not g.anulado %}
+                            {% if not g.pagado %}
+                            <button type="button" class="btn btn-green btn-sm btn-pagar"
+                                    data-id="{{ g.id }}" data-categoria="{{ g.categoria or '' }}"
+                                    data-proveedor="{{ g.proveedor or 'Sin proveedor' }}" data-monto="{{ g.monto | moneda }}">
+                                <i class="ti ti-cash"></i> Pagar
+                            </button>
+                            {% endif %}
+                            <form method="post" action="/gastos-generales/{{ g.id }}/anular">
+                                <button type="submit"
+                                        style="background:none;border:none;cursor:pointer;color:var(--text-light);padding:5px"
+                                        onclick="return confirm('¿Anular este gasto? Quedará registrado pero no se contabilizará.')"
+                                        title="Anular">
+                                    <i class="ti ti-ban" style="font-size:14px"></i>
+                                </button>
+                            </form>
+                        {% else %}
+                            <span style="font-size:11px;color:var(--gray-500)">—</span>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="ti ti-receipt"></i>
+    <p>No hay gastos generales que coincidan con el filtro.</p>
+</div>
+{% endif %}
+
+<!-- DRAWER: Nuevo gasto -->
+<div id="drawer-nuevo-gasto-overlay" class="drawer-overlay" onclick="closeDrawer('drawer-nuevo-gasto')"></div>
+<div id="drawer-nuevo-gasto" class="drawer-panel">
+    <form method="post" style="display:flex;flex-direction:column;height:100%">
+        <div class="drawer-header">
+            <h3>Nuevo gasto general</h3>
+            <button type="button" class="drawer-close" onclick="closeDrawer('drawer-nuevo-gasto')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="drawer-body">
+            <div style="display:flex;flex-direction:column;gap:14px">
                 <div class="field">
-                    <label>Fecha *</label>
+                    <label>Fecha del gasto *</label>
                     <input type="date" name="fecha" class="fecha-hoy" required>
                 </div>
                 <div class="field">
@@ -37,15 +130,6 @@
                     <input type="number" name="monto" min="0" step="0.01" required>
                 </div>
                 <div class="field">
-                    <label>Forma de pago</label>
-                    <select name="forma_pago">
-                        <option value="">Seleccionar...</option>
-                        {% for f in formas_pago %}
-                        <option>{{ f }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="field">
                     <label>N° Comprobante</label>
                     <input type="text" name="comprobante" placeholder="Opcional">
                 </div>
@@ -53,70 +137,101 @@
                     <label>Notas</label>
                     <input type="text" name="notas" placeholder="Opcional">
                 </div>
-            </div>
-            <button type="submit" class="btn btn-primary btn-block">Guardar gasto</button>
-        </form>
-    </div>
 
-    <!-- Lista -->
-    <div>
-        <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">
-            Últimos 50 gastos generales
+                <hr class="divider" style="margin:2px 0">
+
+                <div class="field">
+                    <label>¿Cómo se paga?</label>
+                    <div style="display:flex;gap:16px;margin-top:2px">
+                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;color:var(--text);cursor:pointer">
+                            <input type="radio" name="pagar_ahora" value="si" checked onchange="togglePago(this)">
+                            Pagar ahora
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;color:var(--text);cursor:pointer">
+                            <input type="radio" name="pagar_ahora" value="no" onchange="togglePago(this)">
+                            Dejar como pendiente
+                        </label>
+                    </div>
+                </div>
+
+                <div id="campos-pago" style="display:flex;flex-direction:column;gap:14px">
+                    <div class="field">
+                        <label>Forma de pago</label>
+                        <select name="forma_pago">
+                            <option value="">Seleccionar...</option>
+                            {% for f in formas_pago %}
+                            <option>{{ f }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Fecha de pago</label>
+                        <input type="date" name="fecha_pago" class="fecha-hoy">
+                    </div>
+                </div>
+            </div>
         </div>
-        {% if gastos %}
-        <div class="card" style="padding:0">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Categoría</th>
-                        <th>Proveedor</th>
-                        <th>Forma pago</th>
-                        <th style="text-align:right">Monto</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for g in gastos %}
-                    <tr {% if g.anulado %}style="opacity:0.5;text-decoration:line-through"{% endif %}>
-                        <td>{{ g.fecha.strftime('%d/%m/%Y') }}</td>
-                        <td>{{ g.categoria }}</td>
-                        <td>{{ g.proveedor or '—' }}</td>
-                        <td>{{ g.forma_pago or '—' }}</td>
-                        <td style="text-align:right;font-weight:500;
-                                   color:{% if g.anulado %}var(--gray-500){% else %}var(--red){% endif %}">
-                            {{ g.monto | moneda }}
-                        </td>
-                        <td>
-                            {% if not g.anulado %}
-                            <form method="post" action="/gastos-generales/{{ g.id }}/anular">
-                                <button type="submit"
-                                        style="background:none;border:none;cursor:pointer;color:var(--text-light)"
-                                        onclick="return confirm('¿Anular este gasto? Quedará registrado pero no se contabilizará.')">
-                                    <i class="ti ti-ban" style="font-size:14px"></i>
-                                </button>
-                            </form>
-                            {% else %}
-                            <span style="font-size:11px;color:var(--gray-500)">Anulado</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="drawer-footer">
+            <button type="submit" class="btn btn-primary btn-block">Guardar gasto</button>
+            <button type="button" class="btn btn-ghost" onclick="closeDrawer('drawer-nuevo-gasto')">Cancelar</button>
         </div>
-        {% else %}
-        <div class="empty-state">
-            <i class="ti ti-receipt"></i>
-            <p>No hay gastos generales cargados.</p>
+    </form>
+</div>
+
+<!-- DRAWER: Registrar pago de un gasto pendiente -->
+<div id="drawer-pagar-overlay" class="drawer-overlay" onclick="closeDrawer('drawer-pagar')"></div>
+<div id="drawer-pagar" class="drawer-panel">
+    <form method="post" id="form-pagar" style="display:flex;flex-direction:column;height:100%">
+        <div class="drawer-header">
+            <h3>Registrar pago</h3>
+            <button type="button" class="drawer-close" onclick="closeDrawer('drawer-pagar')">
+                <i class="ti ti-x"></i>
+            </button>
         </div>
-        {% endif %}
-    </div>
+        <div class="drawer-body">
+            <div id="pago-resumen" style="background:var(--gray-100);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--text)"></div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+                <div class="field">
+                    <label>Forma de pago *</label>
+                    <select name="forma_pago" required>
+                        <option value="">Seleccionar...</option>
+                        {% for f in formas_pago %}
+                        <option>{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Fecha de pago</label>
+                    <input type="date" name="fecha_pago" class="fecha-hoy">
+                </div>
+            </div>
+        </div>
+        <div class="drawer-footer">
+            <button type="submit" class="btn btn-green btn-block">Confirmar pago</button>
+            <button type="button" class="btn btn-ghost" onclick="closeDrawer('drawer-pagar')">Cancelar</button>
+        </div>
+    </form>
 </div>
 
 <script>
 document.querySelectorAll('.fecha-hoy').forEach(el => {
     el.value = new Date().toISOString().split('T')[0];
+});
+
+function togglePago(radio) {
+    document.getElementById('campos-pago').style.display = radio.value === 'si' ? 'flex' : 'none';
+}
+
+document.querySelectorAll('.btn-pagar').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        const categoria = this.dataset.categoria;
+        const proveedor = this.dataset.proveedor;
+        const monto = this.dataset.monto;
+        document.getElementById('form-pagar').action = '/gastos-generales/' + id + '/pagar';
+        document.getElementById('pago-resumen').textContent = categoria + ' — ' + proveedor + ' — ' + monto;
+        openDrawer('drawer-pagar');
+    });
 });
 </script>
 
